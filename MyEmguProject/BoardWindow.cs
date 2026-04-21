@@ -34,7 +34,6 @@ namespace MyEmguProject
         private record CameraInfo(int Index, string Name);
 
         // Режим редактирования оверлея
-        private Button? _btnEditOverlay;
         private bool _editMode = false;
         private Control? _draggedControl;
         private bool _resizing = false;
@@ -84,6 +83,14 @@ namespace MyEmguProject
         private string _selectedBoard = "DE10-Lite";
         private string _selectedCourse = "Без курса";
 
+        private static readonly Color BgPrimary = Color.FromArgb(19, 23, 31);
+        private static readonly Color BgSurface = Color.FromArgb(30, 36, 46);
+        private static readonly Color BgElevated = Color.FromArgb(38, 46, 58);
+        private static readonly Color BorderMuted = Color.FromArgb(74, 93, 118);
+        private static readonly Color AccentBlue = Color.FromArgb(59, 130, 246);
+        private static readonly Color TextPrimary = Color.FromArgb(238, 244, 255);
+        private static readonly Color TextSecondary = Color.FromArgb(179, 194, 214);
+
         public BoardWindow()
         {
             InitializeComponent();
@@ -104,8 +111,8 @@ namespace MyEmguProject
             this.MaximumSize = this.Size;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Text = "Управление платой STM32 (22 выхода)";
-            this.BackColor = Color.FromArgb(28, 28, 36);
-            this.Font = new Font("Segoe UI", 9.75f);
+            this.BackColor = BgPrimary;
+            this.Font = new Font("Segoe UI Semibold", 9.75f);
             this.ResumeLayout(false);
         }
 
@@ -118,9 +125,9 @@ namespace MyEmguProject
                 RowCount = 2,
                 BackColor = this.BackColor,
                 Margin = new Padding(0),
-                Padding = new Padding(0)
+                Padding = new Padding(14, 12, 14, 14)
             };
-            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
+            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50f));
             rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             this.Controls.Add(rootLayout);
 
@@ -129,11 +136,12 @@ namespace MyEmguProject
             {
                 Dock = DockStyle.Fill,
                 GripStyle = ToolStripGripStyle.Hidden,
-                BackColor = Color.FromArgb(45, 45, 55),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Regular),
-                Padding = new Padding(8, 4, 8, 4),
-                RenderMode = ToolStripRenderMode.System
+                BackColor = BgSurface,
+                ForeColor = TextPrimary,
+                Font = new Font("Segoe UI Semibold", 9.75f, FontStyle.Regular),
+                Padding = new Padding(10, 7, 10, 7),
+                RenderMode = ToolStripRenderMode.Professional,
+                Renderer = new ModernToolStripRenderer(BgSurface, BgElevated, BorderMuted, AccentBlue)
             };
 
             // Скрыть
@@ -247,9 +255,10 @@ namespace MyEmguProject
             _cmbCamera = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = new Font("Segoe UI", 10),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI Semibold", 9.5f),
+                BackColor = BgElevated,
+                ForeColor = TextPrimary,
                 Width = 220
             };
 
@@ -311,7 +320,7 @@ namespace MyEmguProject
                 ColumnCount = 2,
                 RowCount = 1,
                 BackColor = this.BackColor,
-                Margin = new Padding(0),
+                Margin = new Padding(0, 12, 0, 0),
                 Padding = new Padding(0)
             };
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78f));
@@ -319,9 +328,18 @@ namespace MyEmguProject
             rootLayout.Controls.Add(mainLayout, 0, 1);
 
             // Видео панель
+            var videoCard = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = BgSurface,
+                Padding = new Padding(2),
+                Margin = new Padding(0, 0, 14, 0)
+            };
+            mainLayout.Controls.Add(videoCard, 0, 0);
+
             _videoPanel.Dock = DockStyle.Fill;
             _videoPanel.BackColor = Color.Black;
-            mainLayout.Controls.Add(_videoPanel, 0, 0);
+            videoCard.Controls.Add(_videoPanel);
 
             _pictureBox.Dock = DockStyle.Fill;
             _pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
@@ -334,8 +352,8 @@ namespace MyEmguProject
             var controlPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(36, 36, 46),
-                Padding = new Padding(16, 24, 16, 24)
+                BackColor = BgSurface,
+                Padding = new Padding(18, 24, 18, 24)
             };
             mainLayout.Controls.Add(controlPanel, 1, 0);
 
@@ -344,19 +362,30 @@ namespace MyEmguProject
             controlPanel.Controls.Add(new Label
             {
                 Text = "Управление соленоидами",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.WhiteSmoke,
+                Font = new Font("Segoe UI Semibold", 13.5f, FontStyle.Bold),
+                ForeColor = TextPrimary,
                 AutoSize = true,
                 Location = new Point(0, y)
             });
-            y += 50;
+            y += 34;
+
+            controlPanel.Controls.Add(new Label
+            {
+                Text = "SW0-SW9 + KEY0/KEY1",
+                Font = new Font("Segoe UI", 9f),
+                ForeColor = TextSecondary,
+                AutoSize = true,
+                Location = new Point(0, y)
+            });
+            y += 36;
 
             _lblStatus.Location = new Point(0, y);
-            _lblStatus.Size = new Size(220, 60);
-            _lblStatus.Font = new Font("Segoe UI", 11);
-            _lblStatus.ForeColor = Color.WhiteSmoke;
-            _lblStatus.BackColor = Color.FromArgb(50, 50, 60);
+            _lblStatus.Size = new Size(220, 68);
+            _lblStatus.Font = new Font("Consolas", 10.5f, FontStyle.Bold);
+            _lblStatus.ForeColor = TextPrimary;
+            _lblStatus.BackColor = BgElevated;
             _lblStatus.TextAlign = ContentAlignment.MiddleCenter;
+            _lblStatus.Padding = new Padding(8);
             _lblStatus.Text = "Состояние: 0";
             controlPanel.Controls.Add(_lblStatus);
 
@@ -366,8 +395,43 @@ namespace MyEmguProject
             };
             controlPanel.Controls.Add(_btnBack);
 
+            StyleToolStripItem(_btnHideMenu);
+            StyleToolStripItem(_btnModeMenu);
+            StyleToolStripItem(_btnBoardMenu);
+            StyleToolStripItem(_btnCourseMenu);
+            StyleToolStripItem(_toolBtnEditOverlay);
+            StyleToolStripItem(_toolBtnHistory);
+
+            StyleToolStripDropDown(_btnHideMenu);
+            StyleToolStripDropDown(_btnModeMenu);
+            StyleToolStripDropDown(_btnBoardMenu);
+            StyleToolStripDropDown(_btnCourseMenu);
+
             UpdateHideMenuTexts();
             UpdateSelectionMenus();
+        }
+
+        private void StyleToolStripItem(ToolStripItem? item)
+        {
+            if (item == null) return;
+
+            item.ForeColor = TextPrimary;
+            item.BackColor = BgSurface;
+            item.Margin = new Padding(2, 0, 2, 0);
+        }
+
+        private void StyleToolStripDropDown(ToolStripDropDownItem? item)
+        {
+            if (item == null) return;
+
+            item.DropDown.BackColor = BgSurface;
+            item.DropDown.ForeColor = TextPrimary;
+
+            foreach (ToolStripItem dropItem in item.DropDownItems)
+            {
+                dropItem.BackColor = BgSurface;
+                dropItem.ForeColor = TextPrimary;
+            }
         }
 
         private void ToggleSwitchAndKeysVisibility()
@@ -464,12 +528,6 @@ namespace MyEmguProject
 
             if (_toolBtnEditOverlay != null)
                 _toolBtnEditOverlay.Text = _editMode ? "Завершить редактирование" : "Редактировать SW/KEY";
-
-            if (_btnEditOverlay != null)
-            {
-                _btnEditOverlay.Text = _editMode ? "Завершить редактирование" : "Редактировать SW/KEY";
-                _btnEditOverlay.BackColor = _editMode ? Color.FromArgb(180, 60, 60) : Color.FromArgb(100, 80, 120);
-            }
 
             SetEditMode(_switches, _editMode);
 
@@ -768,7 +826,7 @@ namespace MyEmguProject
                         g.SmoothingMode = SmoothingMode.AntiAlias;
                         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
-                        // === НИЖНИЙ ПРЯМОУГОЛЬНИК (старый) ===
+                        // === НИЖНИЙ ПРЯМОУГОЛЬНИК ===
                         int rectWidth = 405;
                         int rectHeight = 90;
                         int x = (bmp.Width - rectWidth) / 2 + 13;
@@ -784,7 +842,7 @@ namespace MyEmguProject
                             g.DrawRectangle(pen, x, y, rectWidth, rectHeight);
                         }
 
-                        // === НОВЫЙ ВЕРХНИЙ ПРЯМОУГОЛЬНИК ===
+                        // === ВЕРХНИЙ ПРЯМОУГОЛЬНИК ===
                         int topRectWidth = 405;
                         int topRectHeight = 60;
 
@@ -801,7 +859,7 @@ namespace MyEmguProject
                             g.DrawRectangle(pen, topX, topY, topRectWidth, topRectHeight);
                         }
 
-                        // === ТВОЯ СТАРАЯ ЛОГИКА LED ===
+                        // === СТАРАЯ ЛОГИКА LED ===
                         using (var ledFont = new Font("Consolas", 7, FontStyle.Bold))
                         {
                             int startX = x - 8;
@@ -955,6 +1013,69 @@ namespace MyEmguProject
             _lastBitmap?.Dispose();
 
             base.OnFormClosing(e);
+        }
+    }
+
+    internal sealed class ModernToolStripRenderer : ToolStripProfessionalRenderer
+    {
+        private readonly Color _background;
+        private readonly Color _hover;
+        private readonly Color _border;
+        private readonly Color _accent;
+
+        public ModernToolStripRenderer(Color background, Color hover, Color border, Color accent)
+        {
+            _background = background;
+            _hover = hover;
+            _border = border;
+            _accent = accent;
+            RoundedEdges = false;
+        }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            e.Graphics.Clear(_background);
+        }
+
+        protected override void OnRenderImageMargin(ToolStripRenderEventArgs e)
+        {
+            e.Graphics.Clear(_background);
+        }
+
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            var y = e.Item.ContentRectangle.Top + (e.Item.ContentRectangle.Height / 2);
+            using var pen = new Pen(Color.FromArgb(72, _border));
+            e.Graphics.DrawLine(pen, e.Item.ContentRectangle.Left + 2, y, e.Item.ContentRectangle.Right - 2, y);
+        }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            var rect = new Rectangle(Point.Empty, e.Item.Size);
+
+            if (e.Item.Selected)
+            {
+                using var brush = new SolidBrush(_hover);
+                e.Graphics.FillRectangle(brush, rect);
+                using var side = new SolidBrush(_accent);
+                e.Graphics.FillRectangle(side, 0, 0, 3, rect.Height);
+                return;
+            }
+
+            using var idle = new SolidBrush(_background);
+            e.Graphics.FillRectangle(idle, rect);
+        }
+
+        protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
+        {
+            var rect = new Rectangle(Point.Empty, e.Item.Size);
+            using var brush = new SolidBrush(e.Item.Selected ? _hover : _background);
+            e.Graphics.FillRectangle(brush, rect);
+        }
+
+        protected override void OnRenderDropDownButtonBackground(ToolStripItemRenderEventArgs e)
+        {
+            OnRenderButtonBackground(e);
         }
     }
 

@@ -1,7 +1,9 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\bin",
+    "\\bin\\Debug"
   ],
-  "SelectedNode": "\\BoardWindow.cs",
+  "SelectedNode": "\\ReturnValuesWindow.cs",
   "PreviewInSolutionExplorer": false
 }

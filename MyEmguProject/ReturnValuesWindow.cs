@@ -1,18 +1,26 @@
-using System;
+﻿using System;
 using System.Drawing;
-using System.Windows.Forms;
 using System.IO;
 using System.IO.Ports;
 using System.Text;
+using System.Windows.Forms;
 
 namespace MyEmguProject
 {
     public partial class ReturnValuesWindow : Form
     {
-        private SerialPort? _serialPort;
+        private readonly SerialPort? _serialPort;
         private TextBox txtLog = null!;
         private Button btnClear = null!;
-        private Button btnSaveAs = null!;     // Единственная кнопка сохранения
+        private Button btnSaveAs = null!;
+
+        private static readonly Color BgPrimary = Color.FromArgb(19, 23, 31);
+        private static readonly Color BgSurface = Color.FromArgb(30, 36, 46);
+        private static readonly Color BgElevated = Color.FromArgb(38, 46, 58);
+        private static readonly Color BorderMuted = Color.FromArgb(74, 93, 118);
+        private static readonly Color AccentBlue = Color.FromArgb(59, 130, 246);
+        private static readonly Color TextPrimary = Color.FromArgb(238, 244, 255);
+        private static readonly Color TextSecondary = Color.FromArgb(179, 194, 214);
 
         public ReturnValuesWindow(SerialPort? serialPort = null)
         {
@@ -29,72 +37,122 @@ namespace MyEmguProject
 
         private void InitializeWindow()
         {
-            this.Text = "История состояний соленоидов и ключей";
-            this.Size = new Size(620, 580);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
-            this.MinimizeBox = true;
-            this.MaximizeBox = true;
-            this.BackColor = Color.FromArgb(30, 30, 40);
-            this.Font = new Font("Segoe UI", 10);
+            Text = "История состояний соленоидов и ключей";
+            Size = new Size(700, 600);
+            MinimumSize = new Size(640, 500);
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MinimizeBox = true;
+            MaximizeBox = true;
+            BackColor = BgPrimary;
+            Font = new Font("Segoe UI Semibold", 9.75f);
         }
 
         private void SetupUI()
         {
-            // Основное поле лога
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                RowCount = 3,
+                ColumnCount = 1,
+                BackColor = BgPrimary,
+                Padding = new Padding(14),
+                Margin = new Padding(0)
+            };
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+            Controls.Add(root);
+
+            var headerPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = BgSurface,
+                Padding = new Padding(14, 10, 14, 8)
+            };
+            root.Controls.Add(headerPanel, 0, 0);
+
+            var lblTitle = new Label
+            {
+                Text = "История переключений",
+                ForeColor = TextPrimary,
+                Font = new Font("Segoe UI Semibold", 12f, FontStyle.Bold),
+                AutoSize = true,
+                Location = new Point(0, 0)
+            };
+            headerPanel.Controls.Add(lblTitle);
+
+            var lblSubtitle = new Label
+            {
+                Text = "Временная лента сигналов SW/KEY и ответов STM32",
+                ForeColor = TextSecondary,
+                Font = new Font("Segoe UI", 9f),
+                AutoSize = true,
+                Location = new Point(1, 30)
+            };
+            headerPanel.Controls.Add(lblSubtitle);
+
+            var logCard = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = BgSurface,
+                Padding = new Padding(2),
+                Margin = new Padding(0, 12, 0, 12)
+            };
+            root.Controls.Add(logCard, 0, 1);
+
             txtLog = new TextBox
             {
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical,
                 ReadOnly = true,
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(40, 40, 50),
-                ForeColor = Color.LightGray,
+                BackColor = BgElevated,
+                ForeColor = TextPrimary,
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Consolas", 10.5f),
-                Padding = new Padding(10)
+                Font = new Font("Consolas", 10f),
+                Padding = new Padding(12)
             };
-            this.Controls.Add(txtLog);
+            logCard.Controls.Add(txtLog);
 
-            // Панель кнопок внизу
             var buttonPanel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Bottom,
-                Height = 55,
+                Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
-                Padding = new Padding(10),
-                BackColor = Color.FromArgb(35, 35, 45)
+                WrapContents = false,
+                Padding = new Padding(0, 10, 0, 0),
+                BackColor = BgPrimary
             };
-            this.Controls.Add(buttonPanel);
+            root.Controls.Add(buttonPanel, 0, 2);
 
-            // Кнопка Очистить
             btnClear = new Button
             {
                 Text = "Очистить",
-                Size = new Size(110, 38),
-                BackColor = Color.FromArgb(80, 80, 90),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Size = new Size(118, 40)
             };
+            StyleActionButton(btnClear, Color.FromArgb(75, 87, 108));
             btnClear.Click += BtnClear_Click;
             buttonPanel.Controls.Add(btnClear);
 
-            // Кнопка Сохранить как...
             btnSaveAs = new Button
             {
                 Text = "Сохранить как...",
-                Size = new Size(180, 38),
-                BackColor = Color.FromArgb(70, 130, 180),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Size = new Size(170, 40),
+                Margin = new Padding(12, 3, 3, 3)
             };
+            StyleActionButton(btnSaveAs, AccentBlue);
             btnSaveAs.Click += BtnSaveAs_Click;
             buttonPanel.Controls.Add(btnSaveAs);
+        }
 
-            // Отступ для текстового поля
-            txtLog.Margin = new Padding(0, 0, 0, 60);
+        private static void StyleActionButton(Button button, Color backColor)
+        {
+            button.BackColor = backColor;
+            button.ForeColor = Color.White;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.Font = new Font("Segoe UI Semibold", 10f, FontStyle.Bold);
+            button.Cursor = Cursors.Hand;
         }
 
         private void StartListening()
@@ -109,19 +167,21 @@ namespace MyEmguProject
                 string data = _serialPort!.ReadExisting().Trim();
                 if (!string.IsNullOrWhiteSpace(data))
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((MethodInvoker)delegate
                     {
                         AppendLog(data);
                     });
                 }
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         public void AddLog(string message)
         {
             string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
-            this.Invoke((MethodInvoker)delegate
+            Invoke((MethodInvoker)delegate
             {
                 txtLog.AppendText(line + Environment.NewLine);
                 txtLog.SelectionStart = txtLog.Text.Length;
@@ -139,8 +199,7 @@ namespace MyEmguProject
 
         private void BtnClear_Click(object? sender, EventArgs e)
         {
-            if (MessageBox.Show("Очистить всю историю?", "Подтверждение",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            if (MessageBox.Show("Очистить всю историю?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 txtLog.Clear();
             }
@@ -168,29 +227,26 @@ namespace MyEmguProject
             {
                 if (string.IsNullOrWhiteSpace(txtLog.Text))
                 {
-                    MessageBox.Show("История пуста. Нечего сохранять.",
-                        "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("История пуста. Нечего сохранять.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
                 var sb = new StringBuilder();
                 sb.AppendLine("=================================================================");
-                sb.AppendLine("          ИСТОРИЯ ВКЛЮЧЕНИЙ И ВЫКЛЮЧЕНИЙ");
-                sb.AppendLine($"          STM32 Соленоиды + Ключи");
-                sb.AppendLine($"          Сохранено: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                sb.AppendLine("                 ИСТОРИЯ ВКЛЮЧЕНИЙ И ВЫКЛЮЧЕНИЙ");
+                sb.AppendLine("                 STM32 Соленоиды + Ключи");
+                sb.AppendLine($"                 Сохранено: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 sb.AppendLine("=================================================================");
                 sb.AppendLine();
                 sb.Append(txtLog.Text.TrimEnd());
 
                 File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
 
-                MessageBox.Show($"История успешно сохранена!\n\n{filePath}",
-                    "Сохранение завершено", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"История успешно сохранена!\n\n{filePath}", "Сохранение завершено", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при сохранении файла:\n{ex.Message}",
-                    "Ошибка сохранения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ошибка при сохранении файла:\n{ex.Message}", "Ошибка сохранения", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -202,8 +258,11 @@ namespace MyEmguProject
                 {
                     _serialPort.DataReceived -= SerialPort_DataReceived;
                 }
-                catch { }
+                catch
+                {
+                }
             }
+
             base.OnFormClosing(e);
         }
     }

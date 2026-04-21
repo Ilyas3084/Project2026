@@ -3,12 +3,20 @@
   "WorkspaceRootPath": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\StartWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -21,14 +29,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\RoundButton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RoundButton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
     }
   ],
   "DocumentGroupContainers": [
@@ -38,11 +38,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "StartWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\StartWindow.cs",
               "RelativeDocumentMoniker": "StartWindow.cs",
@@ -54,7 +54,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "DipSwitch.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\DipSwitch.cs",
               "RelativeDocumentMoniker": "DipSwitch.cs",
@@ -66,7 +66,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "RoundButton.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\RoundButton.cs",
               "RelativeDocumentMoniker": "RoundButton.cs",
@@ -78,15 +78,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 0,
               "Title": "ReturnValuesWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\ReturnValuesWindow.cs",
               "RelativeDocumentMoniker": "ReturnValuesWindow.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\ReturnValuesWindow.cs",
               "RelativeToolTip": "ReturnValuesWindow.cs",
-              "ViewState": "AgIAAMIAAAAAAAAAAAAUwM0AAAANAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-17T17:57:34.822Z"
+              "WhenOpened": "2026-02-17T17:57:34.822Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -103,7 +104,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 2,
               "Title": "MyEmguProject.csproj",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\MyEmguProject.csproj",
               "RelativeDocumentMoniker": "MyEmguProject.csproj",
@@ -111,17 +112,18 @@
               "RelativeToolTip": "MyEmguProject.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAABHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-02-16T17:28:31.391Z"
+              "WhenOpened": "2026-02-16T17:28:31.391Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "BoardWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs",
               "RelativeDocumentMoniker": "BoardWindow.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs",
               "RelativeToolTip": "BoardWindow.cs",
-              "ViewState": "AgIAACADAAAAAAAAAAAuwDEDAABFAAAAAAAAAA==",
+              "ViewState": "AgIAAGcBAAAAAAAAAAAAAG8BAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-02-16T08:29:06.257Z",
               "EditorCaption": ""
