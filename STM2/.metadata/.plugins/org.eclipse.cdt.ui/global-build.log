@@ -1,0 +1,14 @@
+21:26:43 **** Incremental Build of configuration Debug for project STM32_USB_CDC_Control ****
+make -j8 all 
+arm-none-eabi-size   STM32_USB_CDC_Control.elf 
+   text	   data	    bss	    dec	    hex	filename
+  35216	    360	  10824	  46400	   b540	STM32_USB_CDC_Control.elf
+Finished building: default.size.stdout
+ 
+21:29:53 **** Incremental Build of configuration Debug for project STM32_USB_CDC_Control ****
+make -j8 all 
+arm-none-eabi-size   STM32_USB_CDC_Control.elf 
+   text	   data	    bss	    dec	    hex	filename
+  35216	    360	  10824	  46400	   b540	STM32_USB_CDC_Control.elf
+Finished building: default.size.stdout
+ 
