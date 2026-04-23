@@ -1,0 +1,106 @@
+Configuration	STM32_USB_CDC_Control
+STM32CubeMX 	6.6.1
+Date	04/23/2026
+MCU	STM32F407VGTx
+
+
+
+PERIPHERALS	MODES	FUNCTIONS	PINS
+SYS	Serial Wire	SYS_JTCK-SWCLK	PA14
+SYS	Serial Wire	SYS_JTMS-SWDIO	PA13
+USB_OTG_FS	Device_Only	USB_OTG_FS_DM	PA11
+USB_OTG_FS	Device_Only	USB_OTG_FS_DP	PA12
+
+
+
+Pin Nb	PINs	FUNCTIONs	LABELs
+38	PE7	GPIO_Output	
+39	PE8	GPIO_Output	
+40	PE9	GPIO_Output	
+41	PE10	GPIO_Output	
+42	PE11	GPIO_Output	
+43	PE12	GPIO_Output	
+44	PE13	GPIO_Output	
+45	PE14	GPIO_Output	
+46	PE15	GPIO_Output	
+47	PB10	GPIO_Output	
+48	PB11	GPIO_Output	
+51	PB12	GPIO_Output	
+52	PB13	GPIO_Output	
+53	PB14	GPIO_Output	
+54	PB15	GPIO_Output	
+55	PD8	GPIO_Output	
+56	PD9	GPIO_Output	
+57	PD10	GPIO_Output	
+58	PD11	GPIO_Output	
+59	PD12	GPIO_Output	
+60	PD13	GPIO_Output	
+61	PD14	GPIO_Output	
+62	PD15	GPIO_Output	
+70	PA11	USB_OTG_FS_DM	
+71	PA12	USB_OTG_FS_DP	
+72	PA13	SYS_JTMS-SWDIO	
+76	PA14	SYS_JTCK-SWCLK	
+PERIPHERALS	MODES	FUNCTIONS	PINS
+SYS	Serial Wire	SYS_JTCK-SWCLK	PA14
+SYS	Serial Wire	SYS_JTMS-SWDIO	PA13
+USB_OTG_FS	Device_Only	USB_OTG_FS_DM	PA11
+USB_OTG_FS	Device_Only	USB_OTG_FS_DP	PA12
+
+
+
+Pin Nb	PINs	FUNCTIONs	LABELs
+38	PE7	GPIO_Output	
+39	PE8	GPIO_Output	
+40	PE9	GPIO_Output	
+41	PE10	GPIO_Output	
+42	PE11	GPIO_Output	
+43	PE12	GPIO_Output	
+44	PE13	GPIO_Output	
+45	PE14	GPIO_Output	
+46	PE15	GPIO_Output	
+47	PB10	GPIO_Output	
+48	PB11	GPIO_Output	
+51	PB12	GPIO_Output	
+52	PB13	GPIO_Output	
+53	PB14	GPIO_Output	
+54	PB15	GPIO_Output	
+55	PD8	GPIO_Output	
+56	PD9	GPIO_Output	
+57	PD10	GPIO_Output	
+58	PD11	GPIO_Output	
+59	PD12	GPIO_Output	
+60	PD13	GPIO_Output	
+61	PD14	GPIO_Output	
+62	PD15	GPIO_Output	
+70	PA11	USB_OTG_FS_DM	
+71	PA12	USB_OTG_FS_DP	
+72	PA13	SYS_JTMS-SWDIO	
+76	PA14	SYS_JTCK-SWCLK	
+
+
+
+SOFTWARE PROJECT
+
+Project Settings : 
+Project Name : STM32_USB_CDC_Control
+Project Folder : C:\Users\Ilyas\Desktop\stm\STM2\STM32_USB_CDC_Control
+Toolchain / IDE : STM32CubeIDE
+Firmware Package Name and Version : STM32Cube FW_F4 V1.27.1
+
+
+Code Generation Settings : 
+STM32Cube MCU packages and embedded software packs : Copy only the necessary library files
+Generate peripheral initialization as a pair of '.c/.h' files per peripheral : No
+Backup previously generated files when re-generating : No
+Delete previously generated files when not re-generated : Yes
+Set all free pins as analog (to optimize the power consumption) : No
+
+
+Toolchains Settings : 
+Compiler Optimizations : 
+
+
+
+
+

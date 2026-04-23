@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MyEmguProject")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c29b55475a70e18610caf8e9bbe3c2eb863838df")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b595a8673c37f4cb0297a819f56ce38c3b3ba95a")]
 [assembly: System.Reflection.AssemblyProductAttribute("MyEmguProject")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MyEmguProject")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

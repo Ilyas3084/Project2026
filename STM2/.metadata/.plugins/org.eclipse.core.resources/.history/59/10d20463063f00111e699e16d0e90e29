@@ -1,0 +1,284 @@
+
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body - USB CDC VCP для управления 10 SW + 2 KEY
+  *                   Протокол: передаём номер канала 0..21, МК даёт импульс 0.5с
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+#include "main.h"
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#define APP_RX_DATA_SIZE  64U
+#define TOTAL_CHANNELS    22U
+#define PULSE_MS          500U
+
+extern volatile uint8_t usb_data_ready;
+extern uint8_t usb_rx_buffer[APP_RX_DATA_SIZE];
+extern uint32_t usb_rx_len;
+
+typedef struct
+{
+  GPIO_TypeDef *port;
+  uint16_t pin;
+  GPIO_PinState inactive_state;
+  GPIO_PinState active_state;
+} ChannelMap;
+
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void Process_USB_Command(uint8_t* buf, uint32_t len);
+static void Clear_All_Outputs(void);
+static void Pulse_Channel(uint8_t channel);
+static void Send_Status(void);
+static void Send_Text(const char *text);
+
+static const ChannelMap g_channel_map[TOTAL_CHANNELS] =
+{
+  /* SW0 */ { GPIOD, GPIO_PIN_15, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH0 Dir1 */
+            { GPIOD, GPIO_PIN_14, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH1 Dir2 */
+
+  /* SW1 */ { GPIOD, GPIO_PIN_13, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH2 Dir1 */
+            { GPIOD, GPIO_PIN_12, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH3 Dir2 */
+
+  /* SW2 */ { GPIOD, GPIO_PIN_11, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH4 Dir1 */
+            { GPIOD, GPIO_PIN_10, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH5 Dir2 */
+
+  /* SW3 */ { GPIOD, GPIO_PIN_9,  GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH6 Dir1 */
+            { GPIOD, GPIO_PIN_8,  GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH7 Dir2 */
+
+  /* SW4 */ { GPIOB, GPIO_PIN_15, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH8 Dir1 */
+            { GPIOB, GPIO_PIN_14, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH9 Dir2 */
+
+  /* SW5 */ { GPIOB, GPIO_PIN_13, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH10 Dir1 */
+            { GPIOB, GPIO_PIN_12, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH11 Dir2 */
+
+  /* SW6 */ { GPIOB, GPIO_PIN_11, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH12 Dir1 */
+            { GPIOB, GPIO_PIN_10, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH13 Dir2 */
+
+  /* SW7 */ { GPIOE, GPIO_PIN_15, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH14 Dir1 */
+            { GPIOE, GPIO_PIN_14, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH15 Dir2 */
+
+  /* SW8 */ { GPIOE, GPIO_PIN_13, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH16 Dir1 */
+            { GPIOE, GPIO_PIN_12, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH17 Dir2 */
+
+  /* SW9 */ { GPIOE, GPIO_PIN_11, GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH18 Dir1 */
+            { GPIOE, GPIO_PIN_10, GPIO_PIN_RESET, GPIO_PIN_SET   }, /* CH19 Dir2 */
+
+  /* KEY */ { GPIOE, GPIO_PIN_9,  GPIO_PIN_SET,   GPIO_PIN_RESET }, /* CH20 KEY0 */
+            { GPIOE, GPIO_PIN_7,  GPIO_PIN_SET,   GPIO_PIN_RESET }  /* CH21 KEY1 */
+};
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_USB_DEVICE_Init();
+
+  Clear_All_Outputs();
+  HAL_Delay(200);
+  Send_Text("STM32 CDC Ready\r\nSend channel 0..21 or ? or status\r\n");
+
+  while (1)
+  {
+    if (usb_data_ready)
+    {
+      usb_data_ready = 0;
+      Process_USB_Command(usb_rx_buffer, usb_rx_len);
+    }
+
+    HAL_Delay(5);
+  }
+}
+
+static void Process_USB_Command(uint8_t* buf, uint32_t len)
+{
+  char local[APP_RX_DATA_SIZE];
+  char *endptr = NULL;
+  long value;
+
+  if (len >= APP_RX_DATA_SIZE)
+    len = APP_RX_DATA_SIZE - 1U;
+
+  memcpy(local, buf, len);
+  local[len] = '\0';
+
+  while (len > 0U && (local[len - 1U] == '\r' || local[len - 1U] == '\n' || local[len - 1U] == ' '))
+  {
+    local[len - 1U] = '\0';
+    len--;
+  }
+
+  if (len == 0U)
+    return;
+
+  if (strcmp(local, "?") == 0 || strcmp(local, "status") == 0)
+  {
+    Send_Status();
+    return;
+  }
+
+  value = strtol(local, &endptr, 10);
+  if (endptr != NULL && *endptr == '\0')
+  {
+    if (value >= 0 && value < (long)TOTAL_CHANNELS)
+    {
+      Pulse_Channel((uint8_t)value);
+
+      char resp[32];
+      snprintf(resp, sizeof(resp), "OK CH%ld\r\n", value);
+      Send_Text(resp);
+    }
+    else
+    {
+      Send_Text("ERR: channel must be 0..21\r\n");
+    }
+    return;
+  }
+
+  Send_Text("Send channel 0..21 or ? or status\r\n");
+}
+
+static void Clear_All_Outputs(void)
+{
+  for (uint8_t i = 0; i < TOTAL_CHANNELS; i++)
+  {
+    HAL_GPIO_WritePin(g_channel_map[i].port, g_channel_map[i].pin, g_channel_map[i].inactive_state);
+  }
+}
+
+static void Pulse_Channel(uint8_t channel)
+{
+  if (channel >= TOTAL_CHANNELS)
+    return;
+
+  Clear_All_Outputs();
+  HAL_GPIO_WritePin(g_channel_map[channel].port, g_channel_map[channel].pin, g_channel_map[channel].active_state);
+  HAL_Delay(PULSE_MS);
+  HAL_GPIO_WritePin(g_channel_map[channel].port, g_channel_map[channel].pin, g_channel_map[channel].inactive_state);
+}
+
+static void Send_Status(void)
+{
+  char resp[256];
+  int offset = snprintf(resp, sizeof(resp), "STATE");
+
+  for (uint8_t i = 0; i < TOTAL_CHANNELS && offset > -1 && offset < (int)sizeof(resp) - 8; i++)
+  {
+    GPIO_PinState pin_state = HAL_GPIO_ReadPin(g_channel_map[i].port, g_channel_map[i].pin);
+    uint8_t logical_state = (pin_state == g_channel_map[i].active_state) ? 1U : 0U;
+    offset += snprintf(&resp[offset], sizeof(resp) - (size_t)offset, " %u:%u", i, logical_state);
+  }
+
+  snprintf(&resp[strlen(resp)], sizeof(resp) - strlen(resp), "\r\n");
+  Send_Text(resp);
+}
+
+static void Send_Text(const char *text)
+{
+  if (text == NULL)
+    return;
+
+  uint16_t len = (uint16_t)strlen(text);
+  uint32_t timeout = HAL_GetTick() + 100U;
+
+  while (CDC_Transmit_FS((uint8_t*)text, len) == USBD_BUSY)
+  {
+    if (HAL_GetTick() >= timeout)
+      break;
+    HAL_Delay(1);
+  }
+}
+
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 192;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /* Начальные состояния как в твоём обновлённом CubeMX-файле */
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_15, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8|GPIO_PIN_10|GPIO_PIN_12|GPIO_PIN_14, GPIO_PIN_RESET);
+
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_12|GPIO_PIN_14, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_15, GPIO_PIN_SET);
+
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8|GPIO_PIN_10|GPIO_PIN_12|GPIO_PIN_14, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_15, GPIO_PIN_SET);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10
+                      | GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11
+                      | GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+}
+
+void Error_Handler(void)
+{
+  __disable_irq();
+  while (1)
+  {
+  }
+}
+
+#ifdef  USE_FULL_ASSERT
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  (void)file;
+  (void)line;
+}
+#endif

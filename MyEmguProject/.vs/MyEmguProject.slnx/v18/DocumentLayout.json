@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -13,10 +17,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\StartWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -38,7 +38,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Document",
@@ -78,7 +78,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "ReturnValuesWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\ReturnValuesWindow.cs",
               "RelativeDocumentMoniker": "ReturnValuesWindow.cs",
@@ -91,7 +91,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
@@ -103,7 +103,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "MyEmguProject.csproj",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\MyEmguProject.csproj",
               "RelativeDocumentMoniker": "MyEmguProject.csproj",
@@ -115,15 +115,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "BoardWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs",
               "RelativeDocumentMoniker": "BoardWindow.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Documents\\GitHub\\Diplom2026\\MyEmguProject\\BoardWindow.cs",
               "RelativeToolTip": "BoardWindow.cs",
-              "ViewState": "AgIAAGcBAAAAAAAAAAAAAG8BAAAqAAAAAAAAAA==",
+              "ViewState": "AgIAAC4EAAAAAAAAAAAAADoEAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-16T08:29:06.257Z"
+              "WhenOpened": "2026-02-16T08:29:06.257Z",
+              "EditorCaption": ""
             }
           ]
         }
