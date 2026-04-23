@@ -54,6 +54,7 @@ namespace MyEmguProject
         private ToolStripButton? _toolBtnEditOverlay;
         private ToolStripButton? _toolBtnHistory;
         private ComboBox? _cmbCamera;
+        private ComboBox? _cmbComPort;
 
         private ToolStripDropDownButton? _btnModeMenu;
         private ToolStripDropDownButton? _btnBoardMenu;
@@ -79,8 +80,11 @@ namespace MyEmguProject
         private string _selectedBoard = "DE10-Lite";
         private string _selectedCourse = "Без курса";
 
+        private bool _isUpdatingComPortList;
+
         private static readonly Color BgPrimary = Color.FromArgb(28, 28, 36);
         private static readonly Color BgPanel = Color.FromArgb(36, 36, 46);
+        private static readonly string[] PreferredComPorts = { "COM9", "COM10", "COM11", "COM12", "COM8", "COM7", "COM6", "COM5" };
 
         private record CameraInfo(int Index, string Name);
 
@@ -103,7 +107,7 @@ namespace MyEmguProject
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = true;
-            Size = new Size(1180, 820);
+            Size = new Size(1280, 820);
             MinimumSize = Size;
             MaximumSize = Size;
             StartPosition = FormStartPosition.CenterScreen;
@@ -196,6 +200,8 @@ namespace MyEmguProject
 
             var lblCamera = new ToolStripLabel("Камера:") { ForeColor = Color.White };
 
+            var lblComPort = new ToolStripLabel("COM:") { ForeColor = Color.White };
+
             _cmbCamera = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
@@ -229,6 +235,18 @@ namespace MyEmguProject
 
             var cameraHost = new ToolStripControlHost(_cmbCamera);
 
+            _cmbComPort = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(50, 50, 60),
+                ForeColor = Color.WhiteSmoke,
+                Width = 130
+            };
+            _cmbComPort.SelectedIndexChanged += CmbComPort_SelectedIndexChanged;
+
+            var comPortHost = new ToolStripControlHost(_cmbComPort);
+
             _topToolStrip.Items.Add(_btnHideMenu);
             _topToolStrip.Items.Add(new ToolStripSeparator());
             _topToolStrip.Items.Add(_btnModeMenu);
@@ -243,6 +261,9 @@ namespace MyEmguProject
             _topToolStrip.Items.Add(new ToolStripSeparator());
             _topToolStrip.Items.Add(lblCamera);
             _topToolStrip.Items.Add(cameraHost);
+            _topToolStrip.Items.Add(new ToolStripSeparator());
+            _topToolStrip.Items.Add(lblComPort);
+            _topToolStrip.Items.Add(comPortHost);
 
             rootLayout.Controls.Add(_topToolStrip, 0, 0);
 
@@ -734,7 +755,8 @@ namespace MyEmguProject
 
         private void InitializeSerialPort()
         {
-            string[] portsToCheck = { "COM9", "COM10", "COM11", "COM12", "COM8", "COM7", "COM6", "COM5" };
+            var portsToCheck = GetAvailableComPorts();
+            RefreshComPortList();
 
             foreach (string portName in portsToCheck)
             {
@@ -749,6 +771,7 @@ namespace MyEmguProject
 
                     testPort.Open();
                     _serialPort = testPort;
+                    RefreshComPortList(portName);
                     UpdateStatusText($"Подключено к {portName}");
                     return;
                 }
@@ -763,6 +786,129 @@ namespace MyEmguProject
                 "COM-порт не найден",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
+        }
+
+        private List<string> GetAvailableComPorts()
+        {
+            return SerialPort.GetPortNames()
+                .OrderBy(port =>
+                {
+                    int preferredIndex = Array.IndexOf(PreferredComPorts, port);
+                    return preferredIndex >= 0 ? preferredIndex : int.MaxValue;
+                })
+                .ThenBy(port => port, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private void RefreshComPortList(string? selectedPort = null)
+        {
+            if (_cmbComPort == null)
+                return;
+
+            _isUpdatingComPortList = true;
+
+            try
+            {
+                var ports = GetAvailableComPorts();
+                _cmbComPort.Items.Clear();
+
+                if (ports.Count == 0)
+                {
+                    _cmbComPort.Items.Add("Нет доступных COM");
+                    _cmbComPort.Enabled = false;
+                    _cmbComPort.SelectedIndex = 0;
+                    return;
+                }
+
+                foreach (var port in ports)
+                    _cmbComPort.Items.Add(port);
+
+                _cmbComPort.Enabled = true;
+
+                string? portToSelect = selectedPort;
+                if (string.IsNullOrWhiteSpace(portToSelect) && _serialPort?.IsOpen == true)
+                    portToSelect = _serialPort.PortName;
+
+                int selectedIndex = 0;
+                if (!string.IsNullOrWhiteSpace(portToSelect))
+                {
+                    int foundIndex = ports.FindIndex(port => string.Equals(port, portToSelect, StringComparison.OrdinalIgnoreCase));
+                    if (foundIndex >= 0)
+                        selectedIndex = foundIndex;
+                }
+
+                _cmbComPort.SelectedIndex = selectedIndex;
+            }
+            finally
+            {
+                _isUpdatingComPortList = false;
+            }
+        }
+
+        private void CmbComPort_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_isUpdatingComPortList || _cmbComPort == null || !_cmbComPort.Enabled)
+                return;
+
+            if (_cmbComPort.SelectedItem is not string portName || string.IsNullOrWhiteSpace(portName))
+                return;
+
+            if (_serialPort?.IsOpen == true &&
+                string.Equals(_serialPort.PortName, portName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!TryConnectToSerialPort(portName))
+                RefreshComPortList(_serialPort?.PortName);
+        }
+
+        private bool TryConnectToSerialPort(string portName)
+        {
+            SerialPort? nextPort = null;
+
+            try
+            {
+                nextPort = new SerialPort(portName, 115200)
+                {
+                    ReadTimeout = 500,
+                    WriteTimeout = 500,
+                    NewLine = "\n"
+                };
+
+                nextPort.Open();
+
+                var previousPort = _serialPort;
+                _serialPort = nextPort;
+                nextPort = null;
+
+                try
+                {
+                    if (previousPort?.IsOpen == true)
+                        previousPort.Close();
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    previousPort?.Dispose();
+                }
+
+                RefreshComPortList(portName);
+                UpdateStatusText($"Подключено к {portName}");
+                return true;
+            }
+            catch
+            {
+                nextPort?.Dispose();
+
+                MessageBox.Show(
+                    $"Не удалось подключиться к {portName}. Возможно, порт занят или недоступен.",
+                    "Ошибка подключения",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return false;
+            }
         }
 
         private void SendCommand(string command)
