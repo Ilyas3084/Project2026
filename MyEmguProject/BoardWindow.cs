@@ -84,6 +84,10 @@ namespace MyEmguProject
 
         private static readonly Color BgPrimary = Color.FromArgb(28, 28, 36);
         private static readonly Color BgPanel = Color.FromArgb(36, 36, 46);
+        private static readonly Color KeyIdleColor = Color.FromArgb(33, 110, 210);
+        private static readonly Color KeyIdleBorderColor = Color.FromArgb(125, 190, 255);
+        private static readonly Color KeyActiveColor = Color.FromArgb(0, 150, 70);
+        private static readonly Color KeyActiveBorderColor = Color.FromArgb(110, 255, 170);
         private static readonly string[] PreferredComPorts = { "COM9", "COM10", "COM11", "COM12", "COM8", "COM7", "COM6", "COM5" };
 
         private record CameraInfo(int Index, string Name);
@@ -140,7 +144,8 @@ namespace MyEmguProject
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 Padding = new Padding(8, 4, 8, 4),
-                RenderMode = ToolStripRenderMode.System
+                RenderMode = ToolStripRenderMode.Professional,
+                Renderer = new TopMenuRenderer()
             };
 
             _btnHideMenu = new ToolStripDropDownButton("Скрыть") { ForeColor = Color.White };
@@ -356,10 +361,10 @@ namespace MyEmguProject
             {
                 Text = "KEY0",
                 Location = new Point(790, baseY - 150),
-                BackColor = Color.FromArgb(0, 140, 0),
-                BorderColor = Color.LimeGreen
+                BackColor = KeyIdleColor,
+                BorderColor = KeyIdleBorderColor
             };
-            _btnKey0.Click += (s, e) => TriggerKeyChannel(20, _btnKey0, Color.FromArgb(0, 140, 0), Color.LimeGreen);
+            _btnKey0.Click += (s, e) => TriggerKeyChannel(20, _btnKey0, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
             _videoPanel.Controls.Add(_btnKey0);
             _btnKey0.BringToFront();
 
@@ -367,10 +372,10 @@ namespace MyEmguProject
             {
                 Text = "KEY1",
                 Location = new Point(790, baseY - 30),
-                BackColor = Color.FromArgb(140, 0, 0),
-                BorderColor = Color.IndianRed
+                BackColor = KeyIdleColor,
+                BorderColor = KeyIdleBorderColor
             };
-            _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, Color.FromArgb(140, 0, 0), Color.Red);
+            _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
             _videoPanel.Controls.Add(_btnKey1);
             _btnKey1.BringToFront();
         }
@@ -382,10 +387,14 @@ namespace MyEmguProject
             TriggerChannel(channel);
         }
 
-        private void TriggerKeyChannel(int channel, RoundButton? button, Color idleColor, Color activeColor)
+        private void TriggerKeyChannel(int channel, RoundButton? button, Color idleColor, Color idleBorderColor, Color activeColor, Color activeBorderColor)
         {
             if (button != null)
+            {
                 button.BackColor = activeColor;
+                button.BorderColor = activeBorderColor;
+                button.Invalidate();
+            }
 
             TriggerChannel(channel);
 
@@ -395,7 +404,11 @@ namespace MyEmguProject
                 restoreTimer.Stop();
                 restoreTimer.Dispose();
                 if (button != null && !button.IsDisposed)
+                {
                     button.BackColor = idleColor;
+                    button.BorderColor = idleBorderColor;
+                    button.Invalidate();
+                }
             };
             restoreTimer.Start();
         }
@@ -1001,5 +1014,85 @@ namespace MyEmguProject
             else
                 action();
         }
+    }
+
+    internal sealed class TopMenuRenderer : ToolStripProfessionalRenderer
+    {
+        private static readonly Color HoverBackColor = Color.White;
+        private static readonly Color PressedBackColor = Color.FromArgb(235, 235, 235);
+        private static readonly Color MenuBackColor = Color.FromArgb(45, 45, 55);
+
+        public TopMenuRenderer() : base(new TopMenuColorTable())
+        {
+        }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            using var brush = new SolidBrush(MenuBackColor);
+            e.Graphics.FillRectangle(brush, e.AffectedBounds);
+        }
+
+        protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
+        {
+            FillMenuItemBackground(e);
+        }
+
+        protected override void OnRenderDropDownButtonBackground(ToolStripItemRenderEventArgs e)
+        {
+            FillMenuItemBackground(e);
+        }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            FillMenuItemBackground(e);
+        }
+
+        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        {
+            bool highlighted = e.Item.Selected || e.Item.Pressed;
+            e.TextColor = highlighted ? Color.Black : Color.White;
+            base.OnRenderItemText(e);
+        }
+
+        private static void FillMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            var bounds = new Rectangle(Point.Empty, e.Item.Size);
+            Color fillColor = Color.Transparent;
+
+            if (e.Item.Pressed)
+                fillColor = PressedBackColor;
+            else if (e.Item.Selected)
+                fillColor = HoverBackColor;
+
+            if (fillColor == Color.Transparent)
+                return;
+
+            using var brush = new SolidBrush(fillColor);
+            e.Graphics.FillRectangle(brush, bounds);
+        }
+    }
+
+    internal sealed class TopMenuColorTable : ProfessionalColorTable
+    {
+        private static readonly Color MenuBackColor = Color.FromArgb(45, 45, 55);
+
+        public override Color ToolStripDropDownBackground => MenuBackColor;
+        public override Color ImageMarginGradientBegin => MenuBackColor;
+        public override Color ImageMarginGradientMiddle => MenuBackColor;
+        public override Color ImageMarginGradientEnd => MenuBackColor;
+        public override Color MenuBorder => Color.White;
+        public override Color MenuItemBorder => Color.White;
+        public override Color MenuItemSelected => Color.White;
+        public override Color MenuItemSelectedGradientBegin => Color.White;
+        public override Color MenuItemSelectedGradientEnd => Color.White;
+        public override Color MenuItemPressedGradientBegin => Color.FromArgb(235, 235, 235);
+        public override Color MenuItemPressedGradientMiddle => Color.FromArgb(235, 235, 235);
+        public override Color MenuItemPressedGradientEnd => Color.FromArgb(235, 235, 235);
+        public override Color ButtonSelectedHighlight => Color.White;
+        public override Color ButtonSelectedHighlightBorder => Color.White;
+        public override Color ButtonPressedHighlight => Color.FromArgb(235, 235, 235);
+        public override Color ButtonPressedHighlightBorder => Color.White;
+        public override Color SeparatorDark => Color.FromArgb(90, 90, 100);
+        public override Color SeparatorLight => Color.FromArgb(90, 90, 100);
     }
 }
