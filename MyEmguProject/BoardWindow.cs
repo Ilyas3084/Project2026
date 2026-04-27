@@ -15,7 +15,7 @@ namespace MyEmguProject
     {
         private const int SolenoidCount = 10;
         private const int TotalChannels = 22;
-        private const int PulseVisualMs = 500;
+        private const int DefaultPulseVisualMs = 500;
 
         private readonly DipSwitch[] _switches = new DipSwitch[SolenoidCount];
         private readonly Panel _videoPanel = new();
@@ -36,6 +36,7 @@ namespace MyEmguProject
         private SerialPort? _serialPort;
         private Thread? _readThread;
         private volatile bool _running = true;
+        private int _pulseVisualMs = DefaultPulseVisualMs;
 
         private bool _showOverlay = true;
         private bool _editMode = false;
@@ -51,14 +52,20 @@ namespace MyEmguProject
         private ToolStripDropDownButton? _btnHideMenu;
         private ToolStripMenuItem? _menuToggleOverlay;
         private ToolStripMenuItem? _menuToggleSwitches;
-        private ToolStripButton? _toolBtnEditOverlay;
+        private ToolStripDropDownButton? _btnEditOverlayMenu;
+        private ToolStripMenuItem? _menuEditOverlayEnabled;
         private ToolStripButton? _toolBtnHistory;
         private ComboBox? _cmbCamera;
         private ComboBox? _cmbComPort;
+        private Label? _lblModeValue;
+        private Label? _lblBoardValue;
+        private Label? _lblCourseValue;
 
         private ToolStripDropDownButton? _btnModeMenu;
         private ToolStripDropDownButton? _btnBoardMenu;
         private ToolStripDropDownButton? _btnCourseMenu;
+        private ToolStripDropDownButton? _btnToolsMenu;
+        private ToolStripMenuItem? _menuPulseDuration;
 
         private ToolStripMenuItem? _menuModeTraining;
         private ToolStripMenuItem? _menuModeDebug;
@@ -127,12 +134,13 @@ namespace MyEmguProject
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 2,
+                RowCount = 3,
                 BackColor = BackColor,
                 Margin = new Padding(0),
                 Padding = new Padding(0)
             };
             rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
+            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54f));
             rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             Controls.Add(rootLayout);
 
@@ -148,10 +156,10 @@ namespace MyEmguProject
                 Renderer = new TopMenuRenderer()
             };
 
-            _btnHideMenu = new ToolStripDropDownButton("Скрыть") { ForeColor = Color.White };
-            _menuToggleOverlay = new ToolStripMenuItem("Скрыть оверлей");
+            _btnHideMenu = new ToolStripDropDownButton("Вид") { ForeColor = Color.White };
+            _menuToggleOverlay = new ToolStripMenuItem("Оверлей") { Checked = true };
             _menuToggleOverlay.Click += (s, e) => ToggleOverlayVisibility();
-            _menuToggleSwitches = new ToolStripMenuItem("Скрыть SW/KEY");
+            _menuToggleSwitches = new ToolStripMenuItem("SW/KEY") { Checked = true };
             _menuToggleSwitches.Click += (s, e) => ToggleSwitchAndKeysVisibility();
             _btnHideMenu.DropDownItems.Add(_menuToggleOverlay);
             _btnHideMenu.DropDownItems.Add(_menuToggleSwitches);
@@ -197,8 +205,15 @@ namespace MyEmguProject
                 _menuCourseDigitalLogic, _menuCourseArchitecture, _menuCourseEmbedded, _menuCourseFPGABasics
             });
 
-            _toolBtnEditOverlay = new ToolStripButton("Редактировать SW/KEY") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = Color.White };
-            _toolBtnEditOverlay.Click += BtnEditOverlay_Click;
+            _btnToolsMenu = new ToolStripDropDownButton("Инструменты") { ForeColor = Color.White };
+            _menuPulseDuration = new ToolStripMenuItem("Время сигнала...");
+            _menuPulseDuration.Click += MenuPulseDuration_Click;
+            _btnToolsMenu.DropDownItems.Add(_menuPulseDuration);
+
+            _btnEditOverlayMenu = new ToolStripDropDownButton("Редактировать SW/KEY") { ForeColor = Color.White };
+            _menuEditOverlayEnabled = new ToolStripMenuItem("Активно");
+            _menuEditOverlayEnabled.Click += BtnEditOverlay_Click;
+            _btnEditOverlayMenu.DropDownItems.Add(_menuEditOverlayEnabled);
 
             _toolBtnHistory = new ToolStripButton("История состояний") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = Color.White };
             _toolBtnHistory.Click += BtnBack_Click;
@@ -260,7 +275,9 @@ namespace MyEmguProject
             _topToolStrip.Items.Add(new ToolStripSeparator());
             _topToolStrip.Items.Add(_btnCourseMenu);
             _topToolStrip.Items.Add(new ToolStripSeparator());
-            _topToolStrip.Items.Add(_toolBtnEditOverlay);
+            _topToolStrip.Items.Add(_btnToolsMenu);
+            _topToolStrip.Items.Add(new ToolStripSeparator());
+            _topToolStrip.Items.Add(_btnEditOverlayMenu);
             _topToolStrip.Items.Add(new ToolStripSeparator());
             _topToolStrip.Items.Add(_toolBtnHistory);
             _topToolStrip.Items.Add(new ToolStripSeparator());
@@ -271,6 +288,22 @@ namespace MyEmguProject
             _topToolStrip.Items.Add(comPortHost);
 
             rootLayout.Controls.Add(_topToolStrip, 0, 0);
+
+            var selectionStrip = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = false,
+                BackColor = Color.FromArgb(32, 32, 40),
+                Padding = new Padding(12, 8, 12, 8),
+                Margin = new Padding(0)
+            };
+
+            _lblModeValue = CreateSelectionCard(selectionStrip, "Режим");
+            _lblBoardValue = CreateSelectionCard(selectionStrip, "Плата");
+            _lblCourseValue = CreateSelectionCard(selectionStrip, "Курс");
+            rootLayout.Controls.Add(selectionStrip, 0, 1);
 
             var mainLayout = new TableLayoutPanel
             {
@@ -283,7 +316,7 @@ namespace MyEmguProject
             };
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78f));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22f));
-            rootLayout.Controls.Add(mainLayout, 0, 1);
+            rootLayout.Controls.Add(mainLayout, 0, 2);
 
             _videoPanel.Dock = DockStyle.Fill;
             _videoPanel.BackColor = Color.Black;
@@ -317,7 +350,7 @@ namespace MyEmguProject
 
             controlPanel.Controls.Add(new Label
             {
-                Text = "ON = Dir1, OFF = Dir2\nKEY0 = CH20, KEY1 = CH21",
+                Text = "ON = ON, OFF = OFF\nKEY0 = CH20, KEY1 = CH21",
                 Font = new Font("Segoe UI", 10f),
                 ForeColor = Color.Gainsboro,
                 AutoSize = true,
@@ -382,7 +415,7 @@ namespace MyEmguProject
 
         private void OnSwitchStateChanged(int index)
         {
-            // ON -> Dir1, OFF -> Dir2
+            // ON -> ON channel, OFF -> OFF channel
             int channel = _switches[index].IsOn ? index * 2 : index * 2 + 1;
             TriggerChannel(channel);
         }
@@ -398,7 +431,7 @@ namespace MyEmguProject
 
             TriggerChannel(channel);
 
-            var restoreTimer = new System.Windows.Forms.Timer { Interval = PulseVisualMs };
+            var restoreTimer = new System.Windows.Forms.Timer { Interval = _pulseVisualMs };
             restoreTimer.Tick += (s, e) =>
             {
                 restoreTimer.Stop();
@@ -418,16 +451,16 @@ namespace MyEmguProject
             if (channel < 0 || channel >= TotalChannels)
                 return;
 
-            _channelActiveUntil[channel] = DateTime.UtcNow.AddMilliseconds(PulseVisualMs);
+            _channelActiveUntil[channel] = DateTime.UtcNow.AddMilliseconds(_pulseVisualMs);
 
             string command = channel.ToString() + "\n";
             SendCommand(command);
 
             string message = ChannelToDescription(channel);
             if (_logWindow != null && !_logWindow.IsDisposed)
-                _logWindow.AddLog($"{message} → ИМПУЛЬС 0.5с");
+                _logWindow.AddLog($"{message} → ИМПУЛЬС {FormatPulseDuration()}");
             else
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message} → ИМПУЛЬС 0.5с");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message} → ИМПУЛЬС {FormatPulseDuration()}");
 
             UpdateStatusText($"Последний канал: CH{channel} / {message}");
         }
@@ -435,7 +468,7 @@ namespace MyEmguProject
         private static string ChannelToDescription(int channel)
         {
             if (channel < 20)
-                return $"Sol{channel / 2} Dir{(channel % 2 == 0 ? "1" : "2")}";
+                return $"Sol{channel / 2} {(channel % 2 == 0 ? "ON" : "OFF")}";
             return channel == 20 ? "KEY0" : "KEY1";
         }
 
@@ -462,14 +495,48 @@ namespace MyEmguProject
             UpdateHideMenuTexts();
         }
 
+        private Label CreateSelectionCard(Control parent, string title)
+        {
+            var card = new Panel
+            {
+                Size = new Size(220, 38),
+                BackColor = Color.FromArgb(50, 50, 60),
+                Margin = new Padding(0, 0, 10, 0),
+                Padding = new Padding(10, 4, 10, 4)
+            };
+
+            var titleLabel = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Left,
+                Width = 62,
+                ForeColor = Color.Gainsboro,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            var valueLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                ForeColor = Color.WhiteSmoke,
+                Font = new Font("Segoe UI", 9f, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            card.Controls.Add(valueLabel);
+            card.Controls.Add(titleLabel);
+            parent.Controls.Add(card);
+            return valueLabel;
+        }
+
         private void UpdateHideMenuTexts()
         {
             if (_menuToggleOverlay != null)
-                _menuToggleOverlay.Text = _showOverlay ? "Скрыть оверлей" : "Показать оверлей";
+                _menuToggleOverlay.Checked = _showOverlay;
 
             bool switchesVisible = _switches.Length > 0 && _switches[0] != null && _switches[0].Visible;
             if (_menuToggleSwitches != null)
-                _menuToggleSwitches.Text = switchesVisible ? "Скрыть SW/KEY" : "Показать SW/KEY";
+                _menuToggleSwitches.Checked = switchesVisible;
         }
 
         private void SelectMode(string mode)
@@ -490,6 +557,21 @@ namespace MyEmguProject
             UpdateSelectionMenus();
         }
 
+        private void MenuPulseDuration_Click(object? sender, EventArgs e)
+        {
+            using var dialog = new PulseDurationDialog(_pulseVisualMs);
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            _pulseVisualMs = dialog.PulseDurationMs;
+            UpdateStatusText($"Время сигнала: {FormatPulseDuration()}");
+        }
+
+        private string FormatPulseDuration()
+        {
+            return $"{_pulseVisualMs / 1000d:0.###}с";
+        }
+
         private void UpdateSelectionMenus()
         {
             if (_menuModeTraining != null) _menuModeTraining.Checked = _selectedMode == "Учебный";
@@ -508,9 +590,13 @@ namespace MyEmguProject
             if (_menuCourseEmbedded != null) _menuCourseEmbedded.Checked = _selectedCourse == "Встраиваемые системы";
             if (_menuCourseFPGABasics != null) _menuCourseFPGABasics.Checked = _selectedCourse == "Основы FPGA";
 
-            if (_btnModeMenu != null) _btnModeMenu.Text = $"Режим: {_selectedMode}";
-            if (_btnBoardMenu != null) _btnBoardMenu.Text = $"Плата: {_selectedBoard}";
-            if (_btnCourseMenu != null) _btnCourseMenu.Text = $"Курс: {_selectedCourse}";
+            if (_btnModeMenu != null) _btnModeMenu.Text = "Режим";
+            if (_btnBoardMenu != null) _btnBoardMenu.Text = "Плата";
+            if (_btnCourseMenu != null) _btnCourseMenu.Text = "Курс";
+
+            if (_lblModeValue != null) _lblModeValue.Text = _selectedMode;
+            if (_lblBoardValue != null) _lblBoardValue.Text = _selectedBoard;
+            if (_lblCourseValue != null) _lblCourseValue.Text = _selectedCourse;
         }
 
         private void BtnBack_Click(object? sender, EventArgs e)
@@ -528,8 +614,8 @@ namespace MyEmguProject
         private void BtnEditOverlay_Click(object? sender, EventArgs e)
         {
             _editMode = !_editMode;
-            if (_toolBtnEditOverlay != null)
-                _toolBtnEditOverlay.Text = _editMode ? "Завершить редактирование" : "Редактировать SW/KEY";
+            if (_menuEditOverlayEnabled != null)
+                _menuEditOverlayEnabled.Checked = _editMode;
 
             SetEditMode(_switches, _editMode);
             if (_btnKey0 != null && _btnKey1 != null)
@@ -1094,5 +1180,87 @@ namespace MyEmguProject
         public override Color ButtonPressedHighlightBorder => Color.White;
         public override Color SeparatorDark => Color.FromArgb(90, 90, 100);
         public override Color SeparatorLight => Color.FromArgb(90, 90, 100);
+    }
+
+    internal sealed class PulseDurationDialog : Form
+    {
+        private readonly NumericUpDown _numDuration;
+
+        public int PulseDurationMs => (int)_numDuration.Value;
+
+        public PulseDurationDialog(int currentDurationMs)
+        {
+            Text = "Время сигнала";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterParent;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ShowInTaskbar = false;
+            ClientSize = new Size(320, 145);
+            BackColor = Color.FromArgb(36, 36, 46);
+            Font = new Font("Segoe UI", 9.5f);
+
+            var lblPrompt = new Label
+            {
+                Text = "Длительность сигнала (мс):",
+                AutoSize = true,
+                ForeColor = Color.WhiteSmoke,
+                Location = new Point(18, 18)
+            };
+
+            _numDuration = new NumericUpDown
+            {
+                Minimum = 50,
+                Maximum = 10000,
+                Increment = 50,
+                Value = Math.Max(50, Math.Min(10000, currentDurationMs)),
+                Size = new Size(120, 28),
+                Location = new Point(18, 48),
+                BackColor = Color.FromArgb(50, 50, 60),
+                ForeColor = Color.WhiteSmoke,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var lblHint = new Label
+            {
+                Text = "Можно задать от 50 до 10000 мс.",
+                AutoSize = true,
+                ForeColor = Color.Gainsboro,
+                Location = new Point(18, 82)
+            };
+
+            var btnOk = new Button
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Size = new Size(86, 32),
+                Location = new Point(124, 104),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnOk.FlatAppearance.BorderSize = 0;
+
+            var btnCancel = new Button
+            {
+                Text = "Отмена",
+                DialogResult = DialogResult.Cancel,
+                Size = new Size(86, 32),
+                Location = new Point(218, 104),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnCancel.FlatAppearance.BorderSize = 0;
+
+            Controls.Add(lblPrompt);
+            Controls.Add(_numDuration);
+            Controls.Add(lblHint);
+            Controls.Add(btnOk);
+            Controls.Add(btnCancel);
+
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
+        }
     }
 }

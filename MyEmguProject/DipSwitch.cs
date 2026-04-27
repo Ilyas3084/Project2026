@@ -96,10 +96,16 @@ namespace MyEmguProject
             }
 
             using var font = new Font("Consolas", 9, FontStyle.Bold);
-            TextRenderer.DrawText(e.Graphics, "ON", font, new Rectangle(0, 3, Width, 20),
-                Color.WhiteSmoke, TextFormatFlags.HorizontalCenter);
-            TextRenderer.DrawText(e.Graphics, "OFF", font, new Rectangle(0, Height - 23, Width, 20),
-                Color.WhiteSmoke, TextFormatFlags.HorizontalCenter);
+            const TextFormatFlags switchTextFlags =
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter |
+                TextFormatFlags.SingleLine |
+                TextFormatFlags.NoPadding;
+
+            TextRenderer.DrawText(e.Graphics, "ON", font, new Rectangle(0, 7, Width, 18),
+                Color.WhiteSmoke, switchTextFlags);
+            TextRenderer.DrawText(e.Graphics, "OFF", font, new Rectangle(0, Height - 25, Width, 18),
+                Color.WhiteSmoke, switchTextFlags);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
