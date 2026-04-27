@@ -22,6 +22,7 @@ namespace MyEmguProject
         private readonly PictureBox _pictureBox = new();
         private readonly Label _lblStatus = new();
         private readonly System.Windows.Forms.Timer _visualResetTimer = new();
+        private readonly Label _lblSwitchNumberView = new();
 
         private readonly DateTime[] _channelActiveUntil = new DateTime[TotalChannels];
 
@@ -52,6 +53,9 @@ namespace MyEmguProject
         private ToolStripDropDownButton? _btnHideMenu;
         private ToolStripMenuItem? _menuToggleOverlay;
         private ToolStripMenuItem? _menuToggleSwitches;
+        private ToolStripMenuItem? _menuOverlayTransparency;
+        private ToolStripMenuItem? _menuEditOverlayRects;
+        private ToolStripMenuItem? _menuNumberPresentation;
         private ToolStripDropDownButton? _btnEditOverlayMenu;
         private ToolStripMenuItem? _menuEditOverlayEnabled;
         private ToolStripButton? _toolBtnHistory;
@@ -60,12 +64,17 @@ namespace MyEmguProject
         private Label? _lblModeValue;
         private Label? _lblBoardValue;
         private Label? _lblCourseValue;
+        private Label? _lblNumbersSummary;
 
         private ToolStripDropDownButton? _btnModeMenu;
         private ToolStripDropDownButton? _btnBoardMenu;
         private ToolStripDropDownButton? _btnCourseMenu;
         private ToolStripDropDownButton? _btnToolsMenu;
         private ToolStripMenuItem? _menuPulseDuration;
+        private ToolStripMenuItem? _menuNumberBinary;
+        private ToolStripMenuItem? _menuNumberOctal;
+        private ToolStripMenuItem? _menuNumberDecimal;
+        private ToolStripMenuItem? _menuNumberHex;
 
         private ToolStripMenuItem? _menuModeTraining;
         private ToolStripMenuItem? _menuModeDebug;
@@ -88,6 +97,17 @@ namespace MyEmguProject
         private string _selectedCourse = "Без курса";
 
         private bool _isUpdatingComPortList;
+        private bool _editOverlayRectsMode;
+        private bool _overlayLayoutInitialized;
+        private bool _overlayRectDragging;
+        private bool _overlayRectResizing;
+        private Rectangle _mainOverlayRect;
+        private Rectangle _headerOverlayRect;
+        private Rectangle _overlayRectStartBounds;
+        private Point _overlayMouseDownImage;
+        private OverlayRectSelection _activeOverlayRect = OverlayRectSelection.None;
+        private int _overlayTransparencyAlpha = 160;
+        private NumberPresentation _selectedNumberPresentation = NumberPresentation.Binary;
 
         private static readonly Color BgPrimary = Color.FromArgb(28, 28, 36);
         private static readonly Color BgPanel = Color.FromArgb(36, 36, 46);
@@ -98,6 +118,21 @@ namespace MyEmguProject
         private static readonly string[] PreferredComPorts = { "COM9", "COM10", "COM11", "COM12", "COM8", "COM7", "COM6", "COM5" };
 
         private record CameraInfo(int Index, string Name);
+
+        private enum NumberPresentation
+        {
+            Binary,
+            Octal,
+            Decimal,
+            Hexadecimal
+        }
+
+        private enum OverlayRectSelection
+        {
+            None,
+            Main,
+            Header
+        }
 
         public BoardWindow()
         {
@@ -161,8 +196,29 @@ namespace MyEmguProject
             _menuToggleOverlay.Click += (s, e) => ToggleOverlayVisibility();
             _menuToggleSwitches = new ToolStripMenuItem("SW/KEY") { Checked = true };
             _menuToggleSwitches.Click += (s, e) => ToggleSwitchAndKeysVisibility();
+            _menuOverlayTransparency = new ToolStripMenuItem("Прозрачность прямоугольников...");
+            _menuOverlayTransparency.Click += MenuOverlayTransparency_Click;
+            _menuEditOverlayRects = new ToolStripMenuItem("Редактировать прямоугольники");
+            _menuEditOverlayRects.Click += MenuEditOverlayRects_Click;
+            _menuNumberPresentation = new ToolStripMenuItem("Представление чисел");
+            _menuNumberBinary = new ToolStripMenuItem("Двоичная");
+            _menuNumberBinary.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Binary);
+            _menuNumberOctal = new ToolStripMenuItem("Восьмеричная");
+            _menuNumberOctal.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Octal);
+            _menuNumberDecimal = new ToolStripMenuItem("Десятичная");
+            _menuNumberDecimal.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Decimal);
+            _menuNumberHex = new ToolStripMenuItem("Шестнадцатеричная");
+            _menuNumberHex.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Hexadecimal);
             _btnHideMenu.DropDownItems.Add(_menuToggleOverlay);
             _btnHideMenu.DropDownItems.Add(_menuToggleSwitches);
+            _btnHideMenu.DropDownItems.Add(new ToolStripSeparator());
+            _btnHideMenu.DropDownItems.Add(_menuOverlayTransparency);
+            _btnHideMenu.DropDownItems.Add(_menuEditOverlayRects);
+            _menuNumberPresentation.DropDownItems.AddRange(new ToolStripItem[]
+            {
+                _menuNumberBinary, _menuNumberOctal, _menuNumberDecimal, _menuNumberHex
+            });
+            _btnHideMenu.DropDownItems.Add(_menuNumberPresentation);
 
             _btnModeMenu = new ToolStripDropDownButton("Режим") { ForeColor = Color.White };
             _menuModeTraining = new ToolStripMenuItem("Учебный");
@@ -215,7 +271,7 @@ namespace MyEmguProject
             _menuEditOverlayEnabled.Click += BtnEditOverlay_Click;
             _btnEditOverlayMenu.DropDownItems.Add(_menuEditOverlayEnabled);
 
-            _toolBtnHistory = new ToolStripButton("История состояний") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = Color.White };
+            _toolBtnHistory = new ToolStripButton("Журнал") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = Color.White };
             _toolBtnHistory.Click += BtnBack_Click;
 
             var lblCamera = new ToolStripLabel("Камера:") { ForeColor = Color.White };
@@ -325,6 +381,9 @@ namespace MyEmguProject
             _pictureBox.Dock = DockStyle.Fill;
             _pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             _pictureBox.BackColor = Color.Black;
+            _pictureBox.MouseDown += PictureBox_MouseDown;
+            _pictureBox.MouseMove += PictureBox_MouseMove;
+            _pictureBox.MouseUp += PictureBox_MouseUp;
             _videoPanel.Controls.Add(_pictureBox);
 
             CreateOverlayControls();
@@ -367,8 +426,22 @@ namespace MyEmguProject
             _lblStatus.Text = "Подключение...";
             controlPanel.Controls.Add(_lblStatus);
 
+            y += 104;
+            _lblNumbersSummary = new Label
+            {
+                Location = new Point(0, y),
+                Size = new Size(220, 96),
+                Font = new Font("Consolas", 9f, FontStyle.Bold),
+                ForeColor = Color.WhiteSmoke,
+                BackColor = Color.FromArgb(50, 50, 60),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(10, 8, 10, 8)
+            };
+            controlPanel.Controls.Add(_lblNumbersSummary);
+
             UpdateHideMenuTexts();
             UpdateSelectionMenus();
+            UpdateNumberDisplays();
             UpdateStatusText("Готово");
         }
 
@@ -376,6 +449,14 @@ namespace MyEmguProject
         {
             int baseY = 520;
             int spacingX = 58;
+
+            _lblSwitchNumberView.AutoSize = false;
+            _lblSwitchNumberView.Size = new Size(240, 28);
+            _lblSwitchNumberView.BackColor = Color.FromArgb(48, 24, 24, 28);
+            _lblSwitchNumberView.ForeColor = Color.WhiteSmoke;
+            _lblSwitchNumberView.Font = new Font("Consolas", 10f, FontStyle.Bold);
+            _lblSwitchNumberView.TextAlign = ContentAlignment.MiddleCenter;
+            _videoPanel.Controls.Add(_lblSwitchNumberView);
 
             for (int i = 0; i < SolenoidCount; i++)
             {
@@ -389,6 +470,9 @@ namespace MyEmguProject
                 _videoPanel.Controls.Add(_switches[i]);
                 _switches[i].BringToFront();
             }
+
+            PositionSwitchNumberView();
+            _lblSwitchNumberView.BringToFront();
 
             _btnKey0 = new RoundButton
             {
@@ -411,6 +495,7 @@ namespace MyEmguProject
             _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
             _videoPanel.Controls.Add(_btnKey1);
             _btnKey1.BringToFront();
+            _lblSwitchNumberView.BringToFront();
         }
 
         private void OnSwitchStateChanged(int index)
@@ -418,6 +503,7 @@ namespace MyEmguProject
             // ON -> ON channel, OFF -> OFF channel
             int channel = _switches[index].IsOn ? index * 2 : index * 2 + 1;
             TriggerChannel(channel);
+            UpdateNumberDisplays();
         }
 
         private void TriggerKeyChannel(int channel, RoundButton? button, Color idleColor, Color idleBorderColor, Color activeColor, Color activeBorderColor)
@@ -495,6 +581,174 @@ namespace MyEmguProject
             UpdateHideMenuTexts();
         }
 
+        private void MenuOverlayTransparency_Click(object? sender, EventArgs e)
+        {
+            using var dialog = new OverlayTransparencyDialog(_overlayTransparencyAlpha);
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            _overlayTransparencyAlpha = dialog.OverlayAlpha;
+            _videoPanel.Invalidate();
+            UpdateStatusText($"Прозрачность оверлея: {_overlayTransparencyAlpha}");
+        }
+
+        private void MenuEditOverlayRects_Click(object? sender, EventArgs e)
+        {
+            _editOverlayRectsMode = !_editOverlayRectsMode;
+            UpdateNumberDisplays();
+            UpdateStatusText(_editOverlayRectsMode
+                ? "Редактирование прямоугольников включено"
+                : "Редактирование прямоугольников выключено");
+        }
+
+        private void InitializeOverlayLayoutIfNeeded(Size frameSize)
+        {
+            if (_overlayLayoutInitialized)
+                return;
+
+            int rectWidth = 405;
+            int rectHeight = 90;
+            int x = (frameSize.Width - rectWidth) / 2 + 13;
+            int y = (frameSize.Height - rectHeight) / 2 + 40;
+
+            _mainOverlayRect = new Rectangle(x, y, rectWidth, rectHeight);
+            _headerOverlayRect = new Rectangle(x, y - 70, rectWidth, 60);
+            _overlayLayoutInitialized = true;
+        }
+
+        private Rectangle GetOverlayRect(OverlayRectSelection selection)
+        {
+            return selection == OverlayRectSelection.Main ? _mainOverlayRect : _headerOverlayRect;
+        }
+
+        private void SetOverlayRect(OverlayRectSelection selection, Rectangle rect)
+        {
+            if (selection == OverlayRectSelection.Main)
+                _mainOverlayRect = rect;
+            else if (selection == OverlayRectSelection.Header)
+                _headerOverlayRect = rect;
+        }
+
+        private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
+        {
+            if (!_editOverlayRectsMode || !_showOverlay || e.Button != MouseButtons.Left || _pictureBox.Image == null)
+                return;
+
+            if (!TryMapPicturePointToImage(e.Location, out var imagePoint))
+                return;
+
+            const int gripSize = 12;
+
+            if (_mainOverlayRect.Contains(imagePoint))
+            {
+                _activeOverlayRect = OverlayRectSelection.Main;
+            }
+            else if (_headerOverlayRect.Contains(imagePoint))
+            {
+                _activeOverlayRect = OverlayRectSelection.Header;
+            }
+            else
+            {
+                _activeOverlayRect = OverlayRectSelection.None;
+                return;
+            }
+
+            var activeRect = GetOverlayRect(_activeOverlayRect);
+            _overlayRectResizing = imagePoint.X >= activeRect.Right - gripSize && imagePoint.Y >= activeRect.Bottom - gripSize;
+            _overlayRectDragging = !_overlayRectResizing;
+            _overlayRectStartBounds = activeRect;
+            _overlayMouseDownImage = imagePoint;
+            _pictureBox.Capture = true;
+        }
+
+        private void PictureBox_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (!_editOverlayRectsMode || _activeOverlayRect == OverlayRectSelection.None || _pictureBox.Image == null)
+                return;
+
+            if (!TryMapPicturePointToImage(e.Location, out var imagePoint))
+                return;
+
+            var imageSize = _pictureBox.Image.Size;
+            int deltaX = imagePoint.X - _overlayMouseDownImage.X;
+            int deltaY = imagePoint.Y - _overlayMouseDownImage.Y;
+            Rectangle newRect = _overlayRectStartBounds;
+
+            if (_overlayRectResizing)
+            {
+                newRect.Width = Math.Max(120, _overlayRectStartBounds.Width + deltaX);
+                newRect.Height = Math.Max(40, _overlayRectStartBounds.Height + deltaY);
+            }
+            else if (_overlayRectDragging)
+            {
+                newRect.X = _overlayRectStartBounds.X + deltaX;
+                newRect.Y = _overlayRectStartBounds.Y + deltaY;
+            }
+
+            newRect.X = Math.Max(0, Math.Min(imageSize.Width - newRect.Width, newRect.X));
+            newRect.Y = Math.Max(0, Math.Min(imageSize.Height - newRect.Height, newRect.Y));
+            newRect.Width = Math.Min(newRect.Width, imageSize.Width - newRect.X);
+            newRect.Height = Math.Min(newRect.Height, imageSize.Height - newRect.Y);
+
+            SetOverlayRect(_activeOverlayRect, newRect);
+            _videoPanel.Invalidate();
+        }
+
+        private void PictureBox_MouseUp(object? sender, MouseEventArgs e)
+        {
+            if (_activeOverlayRect == OverlayRectSelection.None)
+                return;
+
+            _pictureBox.Capture = false;
+            _activeOverlayRect = OverlayRectSelection.None;
+            _overlayRectDragging = false;
+            _overlayRectResizing = false;
+        }
+
+        private bool TryMapPicturePointToImage(Point point, out Point imagePoint)
+        {
+            imagePoint = Point.Empty;
+            if (_pictureBox.Image == null)
+                return false;
+
+            Rectangle imageRect = GetImageDisplayRectangle(_pictureBox);
+            if (!imageRect.Contains(point))
+                return false;
+
+            float scaleX = _pictureBox.Image.Width / (float)imageRect.Width;
+            float scaleY = _pictureBox.Image.Height / (float)imageRect.Height;
+
+            imagePoint = new Point(
+                (int)((point.X - imageRect.X) * scaleX),
+                (int)((point.Y - imageRect.Y) * scaleY));
+            return true;
+        }
+
+        private static Rectangle GetImageDisplayRectangle(PictureBox pictureBox)
+        {
+            if (pictureBox.Image == null)
+                return Rectangle.Empty;
+
+            Size imageSize = pictureBox.Image.Size;
+            Size clientSize = pictureBox.ClientSize;
+            float ratio = Math.Min(clientSize.Width / (float)imageSize.Width, clientSize.Height / (float)imageSize.Height);
+
+            int width = (int)(imageSize.Width * ratio);
+            int height = (int)(imageSize.Height * ratio);
+            int x = (clientSize.Width - width) / 2;
+            int y = (clientSize.Height - height) / 2;
+            return new Rectangle(x, y, width, height);
+        }
+
+        private static void DrawOverlayEditHandle(Graphics graphics, Rectangle rect)
+        {
+            var handleRect = new Rectangle(rect.Right - 10, rect.Bottom - 10, 8, 8);
+            using var fillBrush = new SolidBrush(Color.FromArgb(210, 255, 255, 255));
+            using var borderPen = new Pen(Color.Black, 1);
+            graphics.FillRectangle(fillBrush, handleRect);
+            graphics.DrawRectangle(borderPen, handleRect);
+        }
+
         private Label CreateSelectionCard(Control parent, string title)
         {
             var card = new Panel
@@ -537,6 +791,8 @@ namespace MyEmguProject
             bool switchesVisible = _switches.Length > 0 && _switches[0] != null && _switches[0].Visible;
             if (_menuToggleSwitches != null)
                 _menuToggleSwitches.Checked = switchesVisible;
+
+            UpdateNumberDisplays();
         }
 
         private void SelectMode(string mode)
@@ -557,6 +813,12 @@ namespace MyEmguProject
             UpdateSelectionMenus();
         }
 
+        private void SelectNumberPresentation(NumberPresentation presentation)
+        {
+            _selectedNumberPresentation = presentation;
+            UpdateNumberDisplays();
+        }
+
         private void MenuPulseDuration_Click(object? sender, EventArgs e)
         {
             using var dialog = new PulseDurationDialog(_pulseVisualMs);
@@ -570,6 +832,82 @@ namespace MyEmguProject
         private string FormatPulseDuration()
         {
             return $"{_pulseVisualMs / 1000d:0.###}с";
+        }
+
+        private void UpdateNumberDisplays()
+        {
+            int switchValue = GetSwitchValue();
+
+            if (_menuNumberBinary != null) _menuNumberBinary.Checked = _selectedNumberPresentation == NumberPresentation.Binary;
+            if (_menuNumberOctal != null) _menuNumberOctal.Checked = _selectedNumberPresentation == NumberPresentation.Octal;
+            if (_menuNumberDecimal != null) _menuNumberDecimal.Checked = _selectedNumberPresentation == NumberPresentation.Decimal;
+            if (_menuNumberHex != null) _menuNumberHex.Checked = _selectedNumberPresentation == NumberPresentation.Hexadecimal;
+            if (_menuEditOverlayRects != null) _menuEditOverlayRects.Checked = _editOverlayRectsMode;
+
+            _lblSwitchNumberView.Text = $"{GetPresentationLabel(_selectedNumberPresentation)}: {FormatValue(switchValue, _selectedNumberPresentation)}";
+            PositionSwitchNumberView();
+            _lblSwitchNumberView.Visible = _switches.Length > 0 && _switches[0].Visible;
+
+            if (_lblNumbersSummary != null)
+            {
+                _lblNumbersSummary.Text =
+                    "SW сумма" + Environment.NewLine +
+                    $"BIN {FormatValue(switchValue, NumberPresentation.Binary)}" + Environment.NewLine +
+                    $"OCT {FormatValue(switchValue, NumberPresentation.Octal)}" + Environment.NewLine +
+                    $"DEC {FormatValue(switchValue, NumberPresentation.Decimal)}" + Environment.NewLine +
+                    $"HEX {FormatValue(switchValue, NumberPresentation.Hexadecimal)}";
+            }
+        }
+
+        private int GetSwitchValue()
+        {
+            int value = 0;
+
+            for (int i = 0; i < _switches.Length; i++)
+            {
+                if (_switches[i] != null && _switches[i].IsOn)
+                    value |= 1 << i;
+            }
+
+            return value;
+        }
+
+        private static string GetPresentationLabel(NumberPresentation presentation)
+        {
+            return presentation switch
+            {
+                NumberPresentation.Binary => "BIN",
+                NumberPresentation.Octal => "OCT",
+                NumberPresentation.Decimal => "DEC",
+                NumberPresentation.Hexadecimal => "HEX",
+                _ => "BIN"
+            };
+        }
+
+        private string FormatValue(int value, NumberPresentation presentation)
+        {
+            return presentation switch
+            {
+                NumberPresentation.Binary => Convert.ToString(value, 2).PadLeft(SolenoidCount, '0'),
+                NumberPresentation.Octal => Convert.ToString(value, 8),
+                NumberPresentation.Decimal => value.ToString(),
+                NumberPresentation.Hexadecimal => value.ToString("X"),
+                _ => value.ToString()
+            };
+        }
+
+        private void PositionSwitchNumberView()
+        {
+            if (_switches.Length == 0 || _switches[0] == null)
+                return;
+
+            int left = _switches.Min(sw => sw.Left);
+            int right = _switches.Max(sw => sw.Right);
+            int top = _switches.Min(sw => sw.Top);
+
+            int width = Math.Max(240, right - left + 20);
+            _lblSwitchNumberView.Size = new Size(width, 28);
+            _lblSwitchNumberView.Location = new Point(left - 10, Math.Max(0, top - 38));
         }
 
         private void UpdateSelectionMenus()
@@ -697,6 +1035,8 @@ namespace MyEmguProject
 
                 _draggedControl.Location = newLocation;
             }
+
+            PositionSwitchNumberView();
         }
 
         private void Control_MouseUp(object? sender, MouseEventArgs e)
@@ -785,36 +1125,31 @@ namespace MyEmguProject
                     g.SmoothingMode = SmoothingMode.AntiAlias;
                     g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
-                    int rectWidth = 405;
-                    int rectHeight = 90;
-                    int x = (bmp.Width - rectWidth) / 2 + 13;
-                    int y = (bmp.Height - rectHeight) / 2 + 40;
+                    InitializeOverlayLayoutIfNeeded(bmp.Size);
+                    int x = _mainOverlayRect.X;
+                    int y = _mainOverlayRect.Y;
 
-                    using (var brush = new SolidBrush(Color.FromArgb(160, 0, 0, 0)))
-                        g.FillRectangle(brush, x, y, rectWidth, rectHeight);
+                    using (var brush = new SolidBrush(Color.FromArgb(_overlayTransparencyAlpha, 0, 0, 0)))
+                        g.FillRectangle(brush, _mainOverlayRect);
 
                     using (var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 3))
-                        g.DrawRectangle(pen, x, y, rectWidth, rectHeight);
+                        g.DrawRectangle(pen, _mainOverlayRect);
 
-                    int topRectWidth = 405;
-                    int topRectHeight = 60;
-                    int topX = x;
-                    int topY = y - topRectHeight - 10;
-
-                    using (var brush = new SolidBrush(Color.FromArgb(120, 0, 0, 0)))
-                        g.FillRectangle(brush, topX, topY, topRectWidth, topRectHeight);
+                    int headerAlpha = Math.Max(40, _overlayTransparencyAlpha - 40);
+                    using (var brush = new SolidBrush(Color.FromArgb(headerAlpha, 0, 0, 0)))
+                        g.FillRectangle(brush, _headerOverlayRect);
 
                     using (var pen = new Pen(Color.FromArgb(200, 255, 255, 255), 2))
-                        g.DrawRectangle(pen, topX, topY, topRectWidth, topRectHeight);
+                        g.DrawRectangle(pen, _headerOverlayRect);
 
                     using (var titleBrush = new SolidBrush(Color.White))
                     using (var titleFont = new Font("Segoe UI", 11, FontStyle.Bold))
                     {
                         string line1 = $"{_selectedBoard} | {_selectedMode}";
                         string line2 = $"{_selectedCourse}";
-                        g.DrawString(line1, titleFont, titleBrush, topX + 12, topY + 10);
+                        g.DrawString(line1, titleFont, titleBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 10);
                         using var subFont = new Font("Segoe UI", 9, FontStyle.Regular);
-                        g.DrawString(line2, subFont, titleBrush, topX + 12, topY + 33);
+                        g.DrawString(line2, subFont, titleBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
                     }
 
                     using var ledFont = new Font("Consolas", 7, FontStyle.Bold);
@@ -831,13 +1166,30 @@ namespace MyEmguProject
 
                         bool dir1Active = DateTime.UtcNow < _channelActiveUntil[i * 2];
                         bool dir2Active = DateTime.UtcNow < _channelActiveUntil[i * 2 + 1];
+                        bool ledIsActive = dir1Active || dir2Active;
                         Color ledColor = dir1Active ? Color.LimeGreen : dir2Active ? Color.OrangeRed : Color.Gray;
+                        var ledRect = new Rectangle(ledX + 23, ledY - 15, 12, 12);
 
-                        using (var ledBrush = new SolidBrush(ledColor))
-                            g.FillEllipse(ledBrush, ledX + 23, ledY - 15, 12, 12);
+                        using (var ledBrush = new SolidBrush(Color.FromArgb(ledIsActive ? 185 : 50, ledColor)))
+                            g.FillRectangle(ledBrush, ledRect);
+
+                        using (var ledPen = new Pen(Color.FromArgb(ledIsActive ? 235 : 110, ledColor), 1.2f))
+                            g.DrawRectangle(ledPen, ledRect);
+
+                        if (ledIsActive)
+                        {
+                            using var glowBrush = new SolidBrush(Color.FromArgb(70, Color.White));
+                            g.FillRectangle(glowBrush, ledRect.X + 2, ledRect.Y + 2, 4, 4);
+                        }
 
                         using (var textBrush = new SolidBrush(Color.White))
                             g.DrawString($"LED{i}", ledFont, textBrush, ledX + 18, ledY - 2);
+                    }
+
+                    if (_editOverlayRectsMode)
+                    {
+                        DrawOverlayEditHandle(g, _mainOverlayRect);
+                        DrawOverlayEditHandle(g, _headerOverlayRect);
                     }
                 }
 
@@ -1180,6 +1532,88 @@ namespace MyEmguProject
         public override Color ButtonPressedHighlightBorder => Color.White;
         public override Color SeparatorDark => Color.FromArgb(90, 90, 100);
         public override Color SeparatorLight => Color.FromArgb(90, 90, 100);
+    }
+
+    internal sealed class OverlayTransparencyDialog : Form
+    {
+        private readonly NumericUpDown _numAlpha;
+
+        public int OverlayAlpha => (int)_numAlpha.Value;
+
+        public OverlayTransparencyDialog(int currentAlpha)
+        {
+            Text = "Прозрачность прямоугольников";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterParent;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ShowInTaskbar = false;
+            ClientSize = new Size(340, 145);
+            BackColor = Color.FromArgb(36, 36, 46);
+            Font = new Font("Segoe UI", 9.5f);
+
+            var lblPrompt = new Label
+            {
+                Text = "Прозрачность (0-255):",
+                AutoSize = true,
+                ForeColor = Color.WhiteSmoke,
+                Location = new Point(18, 18)
+            };
+
+            _numAlpha = new NumericUpDown
+            {
+                Minimum = 20,
+                Maximum = 255,
+                Increment = 5,
+                Value = Math.Max(20, Math.Min(255, currentAlpha)),
+                Size = new Size(120, 28),
+                Location = new Point(18, 48),
+                BackColor = Color.FromArgb(50, 50, 60),
+                ForeColor = Color.WhiteSmoke,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var lblHint = new Label
+            {
+                Text = "Меньше значение = больше прозрачности.",
+                AutoSize = true,
+                ForeColor = Color.Gainsboro,
+                Location = new Point(18, 82)
+            };
+
+            var btnOk = new Button
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Size = new Size(86, 32),
+                Location = new Point(144, 104),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnOk.FlatAppearance.BorderSize = 0;
+
+            var btnCancel = new Button
+            {
+                Text = "Отмена",
+                DialogResult = DialogResult.Cancel,
+                Size = new Size(86, 32),
+                Location = new Point(236, 104),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnCancel.FlatAppearance.BorderSize = 0;
+
+            Controls.Add(lblPrompt);
+            Controls.Add(_numAlpha);
+            Controls.Add(lblHint);
+            Controls.Add(btnOk);
+            Controls.Add(btnCancel);
+
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
+        }
     }
 
     internal sealed class PulseDurationDialog : Form
