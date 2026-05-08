@@ -48,6 +48,7 @@ namespace MyEmguProject
         private Point _controlStartGlobal;
 
         private ReturnValuesWindow? _logWindow;
+        private SwKeyLayoutEditorWindow? _swKeyEditorWindow;
 
         private ToolStrip? _topToolStrip;
         private ToolStripDropDownButton? _btnHideMenu;
@@ -910,6 +911,118 @@ namespace MyEmguProject
             _lblSwitchNumberView.Location = new Point(left - 10, Math.Max(0, top - 38));
         }
 
+        private void SetSwKeyEditMode(bool enabled)
+        {
+            _editMode = enabled;
+            if (_menuEditOverlayEnabled != null)
+                _menuEditOverlayEnabled.Checked = _editMode;
+
+            SetEditMode(_switches, _editMode);
+            if (_btnKey0 != null && _btnKey1 != null)
+                SetEditMode(new Control[] { _btnKey0, _btnKey1 }, _editMode);
+
+            if (_editMode)
+                OpenSwKeyEditorWindow();
+            else
+                CloseSwKeyEditorWindow();
+        }
+
+        private void OpenSwKeyEditorWindow()
+        {
+            if (_swKeyEditorWindow != null && !_swKeyEditorWindow.IsDisposed)
+            {
+                _swKeyEditorWindow.RefreshTargets();
+                _swKeyEditorWindow.Show();
+                _swKeyEditorWindow.BringToFront();
+                return;
+            }
+
+            _swKeyEditorWindow = new SwKeyLayoutEditorWindow(this);
+            _swKeyEditorWindow.FormClosed += (_, _) =>
+            {
+                _swKeyEditorWindow = null;
+                if (_editMode)
+                    SetSwKeyEditMode(false);
+            };
+            _swKeyEditorWindow.Show(this);
+        }
+
+        private void CloseSwKeyEditorWindow()
+        {
+            if (_swKeyEditorWindow == null || _swKeyEditorWindow.IsDisposed)
+                return;
+
+            _swKeyEditorWindow.FormClosed -= (_, _) => { };
+            _swKeyEditorWindow.Close();
+            _swKeyEditorWindow = null;
+        }
+
+        internal List<SwKeyLayoutTarget> GetSwKeyLayoutTargets()
+        {
+            var targets = new List<SwKeyLayoutTarget>();
+
+            for (int i = 0; i < _switches.Length; i++)
+            {
+                var sw = _switches[i];
+                targets.Add(new SwKeyLayoutTarget($"SW{i}", sw.Left, sw.Top, sw.Width, sw.Height, true));
+            }
+
+            if (_btnKey0 != null)
+                targets.Add(new SwKeyLayoutTarget("KEY0", _btnKey0.Left, _btnKey0.Top, _btnKey0.Width, _btnKey0.Height, false));
+
+            if (_btnKey1 != null)
+                targets.Add(new SwKeyLayoutTarget("KEY1", _btnKey1.Left, _btnKey1.Top, _btnKey1.Width, _btnKey1.Height, false));
+
+            return targets;
+        }
+
+        internal void ApplySwKeyLayout(IReadOnlyList<string> targetIds, int x, int y, int width, int height)
+        {
+            foreach (string targetId in targetIds)
+            {
+                Control? control = FindSwKeyControl(targetId);
+                if (control == null)
+                    continue;
+
+                int clampedWidth = Math.Max(40, width);
+                int clampedHeight = Math.Max(30, height);
+
+                if (control is RoundButton)
+                {
+                    int side = Math.Max(clampedWidth, clampedHeight);
+                    clampedWidth = side;
+                    clampedHeight = side;
+                }
+
+                control.Location = new Point(
+                    Math.Max(0, Math.Min(_videoPanel.ClientSize.Width - clampedWidth, x)),
+                    Math.Max(0, Math.Min(_videoPanel.ClientSize.Height - clampedHeight, y)));
+
+                control.Size = new Size(clampedWidth, clampedHeight);
+            }
+
+            PositionSwitchNumberView();
+            _swKeyEditorWindow?.RefreshTargets();
+        }
+
+        private Control? FindSwKeyControl(string targetId)
+        {
+            if (targetId.StartsWith("SW", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(targetId.Substring(2), out int switchIndex) &&
+                switchIndex >= 0 && switchIndex < _switches.Length)
+            {
+                return _switches[switchIndex];
+            }
+
+            if (string.Equals(targetId, "KEY0", StringComparison.OrdinalIgnoreCase))
+                return _btnKey0;
+
+            if (string.Equals(targetId, "KEY1", StringComparison.OrdinalIgnoreCase))
+                return _btnKey1;
+
+            return null;
+        }
+
         private void UpdateSelectionMenus()
         {
             if (_menuModeTraining != null) _menuModeTraining.Checked = _selectedMode == "Учебный";
@@ -951,13 +1064,7 @@ namespace MyEmguProject
 
         private void BtnEditOverlay_Click(object? sender, EventArgs e)
         {
-            _editMode = !_editMode;
-            if (_menuEditOverlayEnabled != null)
-                _menuEditOverlayEnabled.Checked = _editMode;
-
-            SetEditMode(_switches, _editMode);
-            if (_btnKey0 != null && _btnKey1 != null)
-                SetEditMode(new Control[] { _btnKey0, _btnKey1 }, _editMode);
+            SetSwKeyEditMode(!_editMode);
         }
 
         private void SetEditMode(IEnumerable<Control> controls, bool enabled)
@@ -1037,6 +1144,7 @@ namespace MyEmguProject
             }
 
             PositionSwitchNumberView();
+            _swKeyEditorWindow?.RefreshTargets();
         }
 
         private void Control_MouseUp(object? sender, MouseEventArgs e)
@@ -1045,6 +1153,7 @@ namespace MyEmguProject
             _draggedControl.Capture = false;
             _draggedControl = null;
             _resizing = false;
+            _swKeyEditorWindow?.RefreshTargets();
         }
 
         private List<CameraInfo> GetAvailableCameras(int maxIndex = 15)
@@ -1429,6 +1538,7 @@ namespace MyEmguProject
             _frameTimer?.Stop();
             _visualResetTimer.Stop();
             _capture?.Dispose();
+            CloseSwKeyEditorWindow();
 
             if (_serialPort?.IsOpen == true)
             {
@@ -1440,6 +1550,188 @@ namespace MyEmguProject
             _lastBitmap?.Dispose();
 
             base.OnFormClosing(e);
+        }
+    }
+
+    internal sealed record SwKeyLayoutTarget(string Id, int X, int Y, int Width, int Height, bool IsSwitch);
+
+    internal sealed class SwKeyLayoutEditorWindow : Form
+    {
+        private readonly BoardWindow _owner;
+        private readonly ListBox _lstTargets;
+        private readonly NumericUpDown _numX;
+        private readonly NumericUpDown _numY;
+        private readonly NumericUpDown _numWidth;
+        private readonly NumericUpDown _numHeight;
+
+        public SwKeyLayoutEditorWindow(BoardWindow owner)
+        {
+            _owner = owner;
+
+            Text = "Редактирование SW/KEY";
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ShowInTaskbar = false;
+            ClientSize = new Size(430, 360);
+            BackColor = Color.FromArgb(36, 36, 46);
+            Font = new Font("Segoe UI", 9.5f);
+
+            var lblTargets = new Label
+            {
+                Text = "Элементы:",
+                AutoSize = true,
+                ForeColor = Color.WhiteSmoke,
+                Location = new Point(18, 18)
+            };
+            Controls.Add(lblTargets);
+
+            _lstTargets = new ListBox
+            {
+                SelectionMode = SelectionMode.MultiExtended,
+                Location = new Point(18, 44),
+                Size = new Size(150, 230),
+                BackColor = Color.FromArgb(50, 50, 60),
+                ForeColor = Color.WhiteSmoke,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            _lstTargets.SelectedIndexChanged += (_, _) => LoadValuesFromSelection();
+            Controls.Add(_lstTargets);
+
+            int editorLeft = 190;
+            Controls.Add(CreateFieldLabel("X:", editorLeft, 44));
+            _numX = CreateNumeric(editorLeft + 72, 40);
+            Controls.Add(_numX);
+
+            Controls.Add(CreateFieldLabel("Y:", editorLeft, 86));
+            _numY = CreateNumeric(editorLeft + 72, 82);
+            Controls.Add(_numY);
+
+            Controls.Add(CreateFieldLabel("Ширина:", editorLeft, 128));
+            _numWidth = CreateNumeric(editorLeft + 72, 124);
+            Controls.Add(_numWidth);
+
+            Controls.Add(CreateFieldLabel("Высота:", editorLeft, 170));
+            _numHeight = CreateNumeric(editorLeft + 72, 166);
+            Controls.Add(_numHeight);
+
+            var lblHint = new Label
+            {
+                Text = "Можно выбрать один или несколько элементов.\nЗначения применяются ко всем выбранным.",
+                Size = new Size(205, 54),
+                ForeColor = Color.Gainsboro,
+                Location = new Point(editorLeft, 212)
+            };
+            Controls.Add(lblHint);
+
+            var btnApply = CreateActionButton("Применить", 190, 294);
+            btnApply.Click += (_, _) => ApplyValues();
+            Controls.Add(btnApply);
+
+            var btnRefresh = CreateActionButton("Обновить", 302, 294);
+            btnRefresh.Click += (_, _) => RefreshTargets();
+            Controls.Add(btnRefresh);
+
+            RefreshTargets();
+        }
+
+        public void RefreshTargets()
+        {
+            var selectedIds = _lstTargets.SelectedItems.Cast<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var targets = _owner.GetSwKeyLayoutTargets();
+
+            _lstTargets.BeginUpdate();
+            _lstTargets.Items.Clear();
+            foreach (var target in targets)
+                _lstTargets.Items.Add(target.Id);
+
+            for (int i = 0; i < _lstTargets.Items.Count; i++)
+            {
+                if (selectedIds.Contains(_lstTargets.Items[i]!.ToString()!))
+                    _lstTargets.SetSelected(i, true);
+            }
+            _lstTargets.EndUpdate();
+
+            if (_lstTargets.SelectedItems.Count == 0 && _lstTargets.Items.Count > 0)
+                _lstTargets.SelectedIndex = 0;
+
+            LoadValuesFromSelection();
+        }
+
+        private void LoadValuesFromSelection()
+        {
+            if (_lstTargets.SelectedItems.Count == 0)
+                return;
+
+            string firstId = _lstTargets.SelectedItems[0]!.ToString()!;
+            var target = _owner.GetSwKeyLayoutTargets().FirstOrDefault(item => item.Id == firstId);
+            if (target == null)
+                return;
+
+            _numX.Value = ClampToNumericRange(_numX, target.X);
+            _numY.Value = ClampToNumericRange(_numY, target.Y);
+            _numWidth.Value = ClampToNumericRange(_numWidth, target.Width);
+            _numHeight.Value = ClampToNumericRange(_numHeight, target.Height);
+        }
+
+        private void ApplyValues()
+        {
+            var targetIds = _lstTargets.SelectedItems.Cast<string>().ToList();
+            if (targetIds.Count == 0)
+                return;
+
+            _owner.ApplySwKeyLayout(
+                targetIds,
+                (int)_numX.Value,
+                (int)_numY.Value,
+                (int)_numWidth.Value,
+                (int)_numHeight.Value);
+        }
+
+        private static Label CreateFieldLabel(string text, int x, int y)
+        {
+            return new Label
+            {
+                Text = text,
+                AutoSize = true,
+                ForeColor = Color.WhiteSmoke,
+                Location = new Point(x, y + 6)
+            };
+        }
+
+        private static NumericUpDown CreateNumeric(int x, int y)
+        {
+            return new NumericUpDown
+            {
+                Location = new Point(x, y),
+                Size = new Size(120, 28),
+                Minimum = 0,
+                Maximum = 5000,
+                BackColor = Color.FromArgb(50, 50, 60),
+                ForeColor = Color.WhiteSmoke,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+        }
+
+        private static Button CreateActionButton(string text, int x, int y)
+        {
+            var button = new Button
+            {
+                Text = text,
+                Size = new Size(94, 34),
+                Location = new Point(x, y),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            button.FlatAppearance.BorderSize = 0;
+            return button;
+        }
+
+        private static decimal ClampToNumericRange(NumericUpDown numeric, int value)
+        {
+            return Math.Max(numeric.Minimum, Math.Min(numeric.Maximum, value));
         }
     }
 
