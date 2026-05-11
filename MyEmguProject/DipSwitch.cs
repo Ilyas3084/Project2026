@@ -20,6 +20,9 @@ namespace MyEmguProject
         public bool DisableInternalHandling { get; set; } = false;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public string LabelText { get; set; } = string.Empty;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsOn
         {
             get => _isOn;
@@ -103,6 +106,8 @@ namespace MyEmguProject
                 TextFormatFlags.NoPadding;
 
             TextRenderer.DrawText(e.Graphics, "ON", font, new Rectangle(0, 7, Width, 18),
+                Color.WhiteSmoke, switchTextFlags);
+            TextRenderer.DrawText(e.Graphics, LabelText, font, new Rectangle(0, Height / 2 - 9, Width, 18),
                 Color.WhiteSmoke, switchTextFlags);
             TextRenderer.DrawText(e.Graphics, "OFF", font, new Rectangle(0, Height - 25, Width, 18),
                 Color.WhiteSmoke, switchTextFlags);

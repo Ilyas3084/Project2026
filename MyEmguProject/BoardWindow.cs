@@ -18,6 +18,7 @@ namespace MyEmguProject
         private const int DefaultPulseVisualMs = 500;
 
         private readonly DipSwitch[] _switches = new DipSwitch[SolenoidCount];
+        private readonly Label[] _switchLabels = new Label[SolenoidCount];
         private readonly Panel _videoPanel = new();
         private readonly PictureBox _pictureBox = new();
         private readonly Label _lblStatus = new();
@@ -352,7 +353,7 @@ namespace MyEmguProject
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
                 AutoSize = false,
-                BackColor = Color.FromArgb(32, 32, 40),
+                BackColor = Color.FromArgb(18, 108, 158),
                 Padding = new Padding(12, 8, 12, 8),
                 Margin = new Padding(0)
             };
@@ -434,7 +435,7 @@ namespace MyEmguProject
                 Size = new Size(220, 96),
                 Font = new Font("Consolas", 9f, FontStyle.Bold),
                 ForeColor = Color.WhiteSmoke,
-                BackColor = Color.FromArgb(50, 50, 60),
+                BackColor = Color.FromArgb(42, 136, 190),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(10, 8, 10, 8)
             };
@@ -465,14 +466,29 @@ namespace MyEmguProject
                 _switches[i] = new DipSwitch
                 {
                     Location = new Point(180 + i * spacingX, baseY),
-                    Size = new Size(54, 90)
+                    Size = new Size(54, 90),
+                    LabelText = $"SW{i}"
                 };
                 _switches[i].StateChanged += (_, _) => OnSwitchStateChanged(switchIndex);
                 _videoPanel.Controls.Add(_switches[i]);
                 _switches[i].BringToFront();
+
+                _switchLabels[i] = new Label
+                {
+                    AutoSize = false,
+                    Size = new Size(54, 18),
+                    BackColor = Color.FromArgb(48, 20, 20, 24),
+                    ForeColor = Color.WhiteSmoke,
+                    Font = new Font("Consolas", 8f, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Text = $"SW{i}"
+                };
+                _videoPanel.Controls.Add(_switchLabels[i]);
+                _switchLabels[i].Visible = false;
             }
 
             PositionSwitchNumberView();
+            PositionSwitchLabels();
             _lblSwitchNumberView.BringToFront();
 
             _btnKey0 = new RoundButton
@@ -496,6 +512,7 @@ namespace MyEmguProject
             _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
             _videoPanel.Controls.Add(_btnKey1);
             _btnKey1.BringToFront();
+            PositionSwitchLabels();
             _lblSwitchNumberView.BringToFront();
         }
 
@@ -573,6 +590,7 @@ namespace MyEmguProject
                 sw.Visible = willBeVisible;
             if (_btnKey0 != null) _btnKey0.Visible = willBeVisible;
             if (_btnKey1 != null) _btnKey1.Visible = willBeVisible;
+            PositionSwitchLabels();
             UpdateHideMenuTexts();
         }
 
@@ -867,7 +885,7 @@ namespace MyEmguProject
             for (int i = 0; i < _switches.Length; i++)
             {
                 if (_switches[i] != null && _switches[i].IsOn)
-                    value |= 1 << i;
+                    value |= 1 << (_switches.Length - 1 - i);
             }
 
             return value;
@@ -904,11 +922,27 @@ namespace MyEmguProject
 
             int left = _switches.Min(sw => sw.Left);
             int right = _switches.Max(sw => sw.Right);
-            int top = _switches.Min(sw => sw.Top);
+            int labelsBottom = _switchLabels
+                .Where(label => label != null)
+                .Select(label => label.Bottom)
+                .DefaultIfEmpty(_switches.Max(sw => sw.Bottom))
+                .Max();
 
             int width = Math.Max(240, right - left + 20);
             _lblSwitchNumberView.Size = new Size(width, 28);
-            _lblSwitchNumberView.Location = new Point(left - 10, Math.Max(0, top - 38));
+            _lblSwitchNumberView.Location = new Point(left - 10, labelsBottom + 6);
+        }
+
+        private void PositionSwitchLabels()
+        {
+            for (int i = 0; i < _switches.Length; i++)
+            {
+                if (_switchLabels[i] == null)
+                    continue;
+
+                _switchLabels[i].Location = new Point(_switches[i].Left, _switches[i].Bottom + 2);
+                _switchLabels[i].Visible = false;
+            }
         }
 
         private void SetSwKeyEditMode(bool enabled)
@@ -1002,6 +1036,7 @@ namespace MyEmguProject
             }
 
             PositionSwitchNumberView();
+            PositionSwitchLabels();
             _swKeyEditorWindow?.RefreshTargets();
         }
 
@@ -1144,6 +1179,7 @@ namespace MyEmguProject
             }
 
             PositionSwitchNumberView();
+            PositionSwitchLabels();
             _swKeyEditorWindow?.RefreshTargets();
         }
 
@@ -1251,14 +1287,15 @@ namespace MyEmguProject
                     using (var pen = new Pen(Color.FromArgb(200, 255, 255, 255), 2))
                         g.DrawRectangle(pen, _headerOverlayRect);
 
-                    using (var titleBrush = new SolidBrush(Color.White))
-                    using (var titleFont = new Font("Segoe UI", 11, FontStyle.Bold))
+                    using (var titleBrush = new SolidBrush(Color.FromArgb(132, 233, 255)))
+                    using (var titleFont = new Font("Segoe UI", 11, FontStyle.Bold | FontStyle.Italic))
                     {
                         string line1 = $"{_selectedBoard} | {_selectedMode}";
                         string line2 = $"{_selectedCourse}";
                         g.DrawString(line1, titleFont, titleBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 10);
-                        using var subFont = new Font("Segoe UI", 9, FontStyle.Regular);
-                        g.DrawString(line2, subFont, titleBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
+                        using var subBrush = new SolidBrush(Color.FromArgb(255, 214, 120));
+                        using var subFont = new Font("Segoe UI", 9, FontStyle.Italic);
+                        g.DrawString(line2, subFont, subBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
                     }
 
                     using var ledFont = new Font("Consolas", 7, FontStyle.Bold);
