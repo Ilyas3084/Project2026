@@ -1,10 +1,12 @@
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
 using Emgu.CV;
@@ -118,6 +120,7 @@ namespace MyEmguProject
         private static readonly Color KeyActiveColor = Color.FromArgb(0, 150, 70);
         private static readonly Color KeyActiveBorderColor = Color.FromArgb(110, 255, 170);
         private static readonly string[] PreferredComPorts = { "COM9", "COM10", "COM11", "COM12", "COM8", "COM7", "COM6", "COM5" };
+        private static readonly string SwKeyLayoutFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "swkey-layout.json");
 
         private record CameraInfo(int Index, string Name);
 
@@ -466,8 +469,7 @@ namespace MyEmguProject
                 _switches[i] = new DipSwitch
                 {
                     Location = new Point(180 + i * spacingX, baseY),
-                    Size = new Size(54, 90),
-                    LabelText = $"SW{i}"
+                    Size = new Size(54, 90)
                 };
                 _switches[i].StateChanged += (_, _) => OnSwitchStateChanged(switchIndex);
                 _videoPanel.Controls.Add(_switches[i]);
@@ -484,7 +486,7 @@ namespace MyEmguProject
                     Text = $"SW{i}"
                 };
                 _videoPanel.Controls.Add(_switchLabels[i]);
-                _switchLabels[i].Visible = false;
+                _switchLabels[i].BringToFront();
             }
 
             PositionSwitchNumberView();
@@ -512,6 +514,7 @@ namespace MyEmguProject
             _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
             _videoPanel.Controls.Add(_btnKey1);
             _btnKey1.BringToFront();
+            LoadSavedSwKeyLayout();
             PositionSwitchLabels();
             _lblSwitchNumberView.BringToFront();
         }
@@ -940,8 +943,9 @@ namespace MyEmguProject
                 if (_switchLabels[i] == null)
                     continue;
 
-                _switchLabels[i].Location = new Point(_switches[i].Left, _switches[i].Bottom + 2);
-                _switchLabels[i].Visible = false;
+                _switchLabels[i].Size = new Size(Math.Max(10, _switches[i].Width), _switchLabels[i].Height);
+                _switchLabels[i].Location = new Point(_switches[i].Left, _switches[i].Bottom + 8);
+                _switchLabels[i].Visible = _switches[i].Visible;
             }
         }
 
@@ -1010,7 +1014,95 @@ namespace MyEmguProject
             return targets;
         }
 
-        internal void ApplySwKeyLayout(IReadOnlyList<string> targetIds, int x, int y, int width, int height)
+        internal List<SwKeyLayoutTarget> GetDefaultSwKeyLayoutTargets()
+        {
+            const int baseY = 520;
+            const int spacingX = 58;
+            var targets = new List<SwKeyLayoutTarget>();
+
+            for (int i = 0; i < SolenoidCount; i++)
+            {
+                targets.Add(new SwKeyLayoutTarget(
+                    $"SW{i}",
+                    180 + i * spacingX,
+                    baseY,
+                    54,
+                    90,
+                    true));
+            }
+
+            targets.Add(new SwKeyLayoutTarget("KEY0", 790, baseY - 150, 100, 100, false));
+            targets.Add(new SwKeyLayoutTarget("KEY1", 790, baseY - 30, 100, 100, false));
+            return targets;
+        }
+
+        internal void ResetSwKeyLayoutToDefaults()
+        {
+            ApplySwKeyLayoutTargets(GetDefaultSwKeyLayoutTargets());
+        }
+
+        internal void SaveSwKeyLayout()
+        {
+            try
+            {
+                var targets = GetSwKeyLayoutTargets();
+                var json = JsonSerializer.Serialize(targets, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(SwKeyLayoutFilePath, json);
+            }
+            catch
+            {
+            }
+        }
+
+        private void LoadSavedSwKeyLayout()
+        {
+            try
+            {
+                if (!File.Exists(SwKeyLayoutFilePath))
+                    return;
+
+                string json = File.ReadAllText(SwKeyLayoutFilePath);
+                var targets = JsonSerializer.Deserialize<List<SwKeyLayoutTarget>>(json);
+                if (targets == null || targets.Count == 0)
+                    return;
+
+                ApplySwKeyLayoutTargets(targets);
+            }
+            catch
+            {
+            }
+        }
+
+        private void ApplySwKeyLayoutTargets(IEnumerable<SwKeyLayoutTarget> targets)
+        {
+            foreach (var target in targets)
+            {
+                Control? control = FindSwKeyControl(target.Id);
+                if (control == null)
+                    continue;
+
+                int clampedWidth = Math.Max(10, target.Width);
+                int clampedHeight = Math.Max(10, target.Height);
+
+                if (control is RoundButton)
+                {
+                    int side = Math.Max(clampedWidth, clampedHeight);
+                    clampedWidth = side;
+                    clampedHeight = side;
+                }
+
+                control.Location = new Point(
+                    Math.Max(0, Math.Min(_videoPanel.ClientSize.Width - clampedWidth, target.X)),
+                    Math.Max(0, Math.Min(_videoPanel.ClientSize.Height - clampedHeight, target.Y)));
+                control.Size = new Size(clampedWidth, clampedHeight);
+            }
+
+            PositionSwitchNumberView();
+            PositionSwitchLabels();
+            _swKeyEditorWindow?.RefreshTargets();
+        }
+
+        internal void ApplySwKeyLayout(IReadOnlyList<string> targetIds, int x, int y, int width, int height, int radius, bool keyMode)
         {
             foreach (string targetId in targetIds)
             {
@@ -1018,14 +1110,27 @@ namespace MyEmguProject
                 if (control == null)
                     continue;
 
-                int clampedWidth = Math.Max(40, width);
-                int clampedHeight = Math.Max(30, height);
+                int clampedWidth;
+                int clampedHeight;
 
-                if (control is RoundButton)
+                if (keyMode && control is RoundButton)
                 {
-                    int side = Math.Max(clampedWidth, clampedHeight);
-                    clampedWidth = side;
-                    clampedHeight = side;
+                    int clampedRadius = Math.Max(10, radius);
+                    int diameter = clampedRadius * 2;
+                    clampedWidth = diameter;
+                    clampedHeight = diameter;
+                }
+                else
+                {
+                    clampedWidth = Math.Max(10, width);
+                    clampedHeight = Math.Max(10, height);
+
+                    if (control is RoundButton)
+                    {
+                        int side = Math.Max(clampedWidth, clampedHeight);
+                        clampedWidth = side;
+                        clampedHeight = side;
+                    }
                 }
 
                 control.Location = new Point(
@@ -1038,6 +1143,7 @@ namespace MyEmguProject
             PositionSwitchNumberView();
             PositionSwitchLabels();
             _swKeyEditorWindow?.RefreshTargets();
+            SaveSwKeyLayout();
         }
 
         private Control? FindSwKeyControl(string targetId)
@@ -1155,8 +1261,15 @@ namespace MyEmguProject
             {
                 int deltaX = currentMouseGlobal.X - _mouseDownGlobal.X;
                 int deltaY = currentMouseGlobal.Y - _mouseDownGlobal.Y;
-                int newWidth = Math.Max(40, _startSize.Width + deltaX);
-                int newHeight = Math.Max(30, _startSize.Height + deltaY);
+                int newWidth = Math.Max(10, _startSize.Width + deltaX);
+                int newHeight = Math.Max(10, _startSize.Height + deltaY);
+
+                if (_draggedControl is RoundButton)
+                {
+                    int side = Math.Max(newWidth, newHeight);
+                    newWidth = side;
+                    newHeight = side;
+                }
 
                 if (_draggedControl.Left + newWidth > _videoPanel.ClientSize.Width)
                     newWidth = _videoPanel.ClientSize.Width - _draggedControl.Left;
@@ -1600,6 +1713,11 @@ namespace MyEmguProject
         private readonly NumericUpDown _numY;
         private readonly NumericUpDown _numWidth;
         private readonly NumericUpDown _numHeight;
+        private readonly NumericUpDown _numRadius;
+        private readonly Label _lblWidthCaption;
+        private readonly Label _lblHeightCaption;
+        private readonly Label _lblRadiusCaption;
+        private readonly Label _lblHint;
 
         public SwKeyLayoutEditorWindow(BoardWindow owner)
         {
@@ -1645,30 +1763,44 @@ namespace MyEmguProject
             _numY = CreateNumeric(editorLeft + 72, 82);
             Controls.Add(_numY);
 
-            Controls.Add(CreateFieldLabel("Ширина:", editorLeft, 128));
+            _lblWidthCaption = CreateFieldLabel("Ширина:", editorLeft, 128);
+            Controls.Add(_lblWidthCaption);
             _numWidth = CreateNumeric(editorLeft + 72, 124);
+            _numWidth.Minimum = 10;
             Controls.Add(_numWidth);
 
-            Controls.Add(CreateFieldLabel("Высота:", editorLeft, 170));
+            _lblHeightCaption = CreateFieldLabel("Высота:", editorLeft, 170);
+            Controls.Add(_lblHeightCaption);
             _numHeight = CreateNumeric(editorLeft + 72, 166);
+            _numHeight.Minimum = 10;
             Controls.Add(_numHeight);
 
-            var lblHint = new Label
+            _lblRadiusCaption = CreateFieldLabel("Радиус:", editorLeft, 128);
+            Controls.Add(_lblRadiusCaption);
+            _numRadius = CreateNumeric(editorLeft + 72, 124);
+            _numRadius.Minimum = 10;
+            Controls.Add(_numRadius);
+
+            _lblHint = new Label
             {
-                Text = "Можно выбрать один или несколько элементов.\nЗначения применяются ко всем выбранным.",
+                Text = "Можно выбрать один или несколько элементов.\nПараметры применяются ко всем выбранным.",
                 Size = new Size(205, 54),
                 ForeColor = Color.Gainsboro,
-                Location = new Point(editorLeft, 212)
+                Location = new Point(editorLeft, 214)
             };
-            Controls.Add(lblHint);
+            Controls.Add(_lblHint);
 
             var btnApply = CreateActionButton("Применить", 190, 294);
             btnApply.Click += (_, _) => ApplyValues();
             Controls.Add(btnApply);
 
-            var btnRefresh = CreateActionButton("Обновить", 302, 294);
-            btnRefresh.Click += (_, _) => RefreshTargets();
-            Controls.Add(btnRefresh);
+            var btnDefault = CreateActionButton("Default", 302, 294);
+            btnDefault.Click += (_, _) =>
+            {
+                _owner.ResetSwKeyLayoutToDefaults();
+                RefreshTargets();
+            };
+            Controls.Add(btnDefault);
 
             RefreshTargets();
         }
@@ -1708,8 +1840,28 @@ namespace MyEmguProject
 
             _numX.Value = ClampToNumericRange(_numX, target.X);
             _numY.Value = ClampToNumericRange(_numY, target.Y);
-            _numWidth.Value = ClampToNumericRange(_numWidth, target.Width);
-            _numHeight.Value = ClampToNumericRange(_numHeight, target.Height);
+            bool selectedOnlyKeys = _lstTargets.SelectedItems.Cast<string>()
+                .All(id => id.StartsWith("KEY", StringComparison.OrdinalIgnoreCase));
+
+            _lblWidthCaption.Visible = !selectedOnlyKeys;
+            _numWidth.Visible = !selectedOnlyKeys;
+            _lblHeightCaption.Visible = !selectedOnlyKeys;
+            _numHeight.Visible = !selectedOnlyKeys;
+            _lblRadiusCaption.Visible = selectedOnlyKeys;
+            _numRadius.Visible = selectedOnlyKeys;
+            _lblHint.Text = selectedOnlyKeys
+                ? "Можно выбрать один или несколько KEY.\nРадиус применяется ко всем выбранным."
+                : "Можно выбрать один или несколько SW.\nШирина и высота применяются ко всем выбранным.";
+
+            if (selectedOnlyKeys)
+            {
+                _numRadius.Value = ClampToNumericRange(_numRadius, target.Width / 2);
+            }
+            else
+            {
+                _numWidth.Value = ClampToNumericRange(_numWidth, target.Width);
+                _numHeight.Value = ClampToNumericRange(_numHeight, target.Height);
+            }
         }
 
         private void ApplyValues()
@@ -1718,12 +1870,15 @@ namespace MyEmguProject
             if (targetIds.Count == 0)
                 return;
 
+            bool selectedOnlyKeys = targetIds.All(id => id.StartsWith("KEY", StringComparison.OrdinalIgnoreCase));
             _owner.ApplySwKeyLayout(
                 targetIds,
                 (int)_numX.Value,
                 (int)_numY.Value,
                 (int)_numWidth.Value,
-                (int)_numHeight.Value);
+                (int)_numHeight.Value,
+                (int)_numRadius.Value,
+                selectedOnlyKeys);
         }
 
         private static Label CreateFieldLabel(string text, int x, int y)
@@ -2027,3 +2182,4 @@ namespace MyEmguProject
         }
     }
 }
+

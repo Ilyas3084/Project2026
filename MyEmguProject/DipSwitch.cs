@@ -12,15 +12,8 @@ namespace MyEmguProject
         private int _sliderY;
         private bool _dragging;
 
-        private const int SliderHeight = 28;
-        private int SliderTop => 6;
-        private int SliderBottom => Height - SliderHeight - 6;
-
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool DisableInternalHandling { get; set; } = false;
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string LabelText { get; set; } = string.Empty;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsOn
@@ -52,33 +45,51 @@ namespace MyEmguProject
             Invalidate();
         }
 
+        private int SliderHeight => Math.Max(20, (int)(Height * 0.31f));
+        private int OuterPadding => Math.Max(4, (int)(Math.Min(Width, Height) * 0.08f));
+        private int SliderTop => OuterPadding;
+        private int SliderBottom => Height - SliderHeight - OuterPadding;
+        private int SlotPaddingX => Math.Max(7, (int)(Width * 0.16f));
+        private int SlotPaddingY => Math.Max(6, (int)(Height * 0.09f));
+
         protected override void OnPaint(PaintEventArgs e)
         {
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.CompositingQuality = CompositingQuality.HighQuality;
 
             var bodyRect = new Rectangle(1, 1, Width - 3, Height - 3);
+            int bodyRadius = Math.Max(8, Math.Min(Width, Height) / 7);
             using (var bgBrush = new LinearGradientBrush(
                 bodyRect,
                 Color.FromArgb(45, 50, 62),
                 Color.FromArgb(27, 31, 40),
                 90f))
             {
-                e.Graphics.FillRoundedRectangle(bgBrush, bodyRect, 12);
+                e.Graphics.FillRoundedRectangle(bgBrush, bodyRect, bodyRadius);
             }
 
             using (var borderPen = new Pen(Color.FromArgb(80, 130, 150, 170), 1.6f))
             {
-                e.Graphics.DrawRoundedRectangle(borderPen, bodyRect, 12);
+                e.Graphics.DrawRoundedRectangle(borderPen, bodyRect, bodyRadius);
             }
 
-            var slotRect = new Rectangle(9, 8, Width - 18, Height - 16);
+            var slotRect = new Rectangle(
+                SlotPaddingX,
+                SlotPaddingY,
+                Math.Max(12, Width - SlotPaddingX * 2),
+                Math.Max(24, Height - SlotPaddingY * 2));
+            int slotRadius = Math.Max(6, Math.Min(slotRect.Width, slotRect.Height) / 6);
             using (var slotBrush = new SolidBrush(Color.FromArgb(32, 20, 22, 28)))
             {
-                e.Graphics.FillRoundedRectangle(slotBrush, slotRect, 9);
+                e.Graphics.FillRoundedRectangle(slotBrush, slotRect, slotRadius);
             }
 
-            var sliderRect = new Rectangle(8, _sliderY, Width - 16, SliderHeight);
+            var sliderRect = new Rectangle(
+                Math.Max(6, SlotPaddingX - 1),
+                _sliderY,
+                Math.Max(12, Width - Math.Max(6, SlotPaddingX - 1) * 2),
+                SliderHeight);
+            int sliderRadius = Math.Max(6, Math.Min(sliderRect.Width, sliderRect.Height) / 5);
             var onTop = Color.FromArgb(32, 197, 124);
             var onBottom = Color.FromArgb(21, 124, 80);
             var offTop = Color.FromArgb(218, 64, 88);
@@ -90,27 +101,14 @@ namespace MyEmguProject
                 _isOn ? onBottom : offBottom,
                 90f))
             {
-                e.Graphics.FillRoundedRectangle(sliderBrush, sliderRect, 8);
+                e.Graphics.FillRoundedRectangle(sliderBrush, sliderRect, sliderRadius);
             }
 
             using (var sliderBorder = new Pen(Color.FromArgb(120, 255, 255, 255), 1.2f))
             {
-                e.Graphics.DrawRoundedRectangle(sliderBorder, sliderRect, 8);
+                e.Graphics.DrawRoundedRectangle(sliderBorder, sliderRect, sliderRadius);
             }
 
-            using var font = new Font("Consolas", 9, FontStyle.Bold);
-            const TextFormatFlags switchTextFlags =
-                TextFormatFlags.HorizontalCenter |
-                TextFormatFlags.VerticalCenter |
-                TextFormatFlags.SingleLine |
-                TextFormatFlags.NoPadding;
-
-            TextRenderer.DrawText(e.Graphics, "ON", font, new Rectangle(0, 7, Width, 18),
-                Color.WhiteSmoke, switchTextFlags);
-            TextRenderer.DrawText(e.Graphics, LabelText, font, new Rectangle(0, Height / 2 - 9, Width, 18),
-                Color.WhiteSmoke, switchTextFlags);
-            TextRenderer.DrawText(e.Graphics, "OFF", font, new Rectangle(0, Height - 25, Width, 18),
-                Color.WhiteSmoke, switchTextFlags);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -118,7 +116,8 @@ namespace MyEmguProject
             base.OnMouseDown(e);
             if (DisableInternalHandling || e.Button != MouseButtons.Left) return;
 
-            var sliderRect = new Rectangle(8, _sliderY, Width - 16, SliderHeight);
+            int sliderLeft = Math.Max(6, SlotPaddingX - 1);
+            var sliderRect = new Rectangle(sliderLeft, _sliderY, Math.Max(12, Width - sliderLeft * 2), SliderHeight);
             if (!sliderRect.Contains(e.Location)) return;
 
             _dragging = true;
@@ -149,6 +148,12 @@ namespace MyEmguProject
                 StateChanged?.Invoke(this, EventArgs.Empty);
             }
 
+            UpdateSliderPosition();
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
             UpdateSliderPosition();
         }
     }
