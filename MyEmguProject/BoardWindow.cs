@@ -1411,23 +1411,29 @@ namespace MyEmguProject
                         g.DrawString(line2, subFont, subBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
                     }
 
-                    using var ledFont = new Font("Consolas", 7, FontStyle.Bold);
-                    int startX = x - 8;
-                    int startY = y + 20;
-                    int spacingX = 40;
-                    int cols = 10;
+                    float ledPaddingX = Math.Max(8f, _mainOverlayRect.Width * 0.037f);
+                    float ledPaddingTop = Math.Max(5f, _mainOverlayRect.Height * 0.06f);
+                    float ledBandWidth = Math.Max(60f, _mainOverlayRect.Width - ledPaddingX * 2f);
+                    float ledSlotWidth = ledBandWidth / SolenoidCount;
+                    float ledSizeF = Math.Max(8f, Math.Min(ledSlotWidth * 0.34f, _mainOverlayRect.Height * 0.22f));
+                    float ledTop = _mainOverlayRect.Y + ledPaddingTop;
+                    float labelTop = _mainOverlayRect.Y + Math.Max(18f, _mainOverlayRect.Height * 0.46f);
+                    float ledTextWidth = Math.Max(20f, ledSlotWidth);
+                    float ledFontSize = Math.Max(6.5f, Math.Min(10f, _mainOverlayRect.Height * 0.09f));
+                    using var ledFont = new Font("Consolas", ledFontSize, FontStyle.Bold);
 
                     for (int i = 0; i < 10; i++)
                     {
-                        int col = i % cols;
-                        int ledX = startX + (col * spacingX);
-                        int ledY = startY;
+                        float slotLeft = _mainOverlayRect.X + ledPaddingX + i * ledSlotWidth;
+                        int ledSize = (int)Math.Round(ledSizeF);
+                        int ledX = (int)Math.Round(slotLeft + (ledSlotWidth - ledSizeF) / 2f);
+                        int ledY = (int)Math.Round(ledTop);
 
                         bool dir1Active = DateTime.UtcNow < _channelActiveUntil[i * 2];
                         bool dir2Active = DateTime.UtcNow < _channelActiveUntil[i * 2 + 1];
                         bool ledIsActive = dir1Active || dir2Active;
                         Color ledColor = dir1Active ? Color.LimeGreen : dir2Active ? Color.OrangeRed : Color.Gray;
-                        var ledRect = new Rectangle(ledX + 23, ledY - 15, 12, 12);
+                        var ledRect = new Rectangle(ledX, ledY, ledSize, ledSize);
 
                         using (var ledBrush = new SolidBrush(Color.FromArgb(ledIsActive ? 185 : 50, ledColor)))
                             g.FillRectangle(ledBrush, ledRect);
@@ -1438,11 +1444,14 @@ namespace MyEmguProject
                         if (ledIsActive)
                         {
                             using var glowBrush = new SolidBrush(Color.FromArgb(70, Color.White));
-                            g.FillRectangle(glowBrush, ledRect.X + 2, ledRect.Y + 2, 4, 4);
+                            int glowSize = Math.Max(2, ledRect.Width / 3);
+                            g.FillRectangle(glowBrush, ledRect.X + 2, ledRect.Y + 2, glowSize, glowSize);
                         }
 
                         using (var textBrush = new SolidBrush(Color.White))
-                            g.DrawString($"LED{i}", ledFont, textBrush, ledX + 18, ledY - 2);
+                            g.DrawString($"LED{i}", ledFont, textBrush,
+                                new RectangleF(slotLeft, labelTop, ledTextWidth, _mainOverlayRect.Height - (labelTop - _mainOverlayRect.Y)),
+                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                     }
 
                     if (_editOverlayRectsMode)
