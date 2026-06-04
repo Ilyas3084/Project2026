@@ -57,6 +57,9 @@ namespace MyEmguProject
         private ToolStripDropDownButton? _btnHideMenu;
         private ToolStripMenuItem? _menuToggleOverlay;
         private ToolStripMenuItem? _menuToggleSwitches;
+        private ToolStripMenuItem? _menuSwitchesVisible;
+        private ToolStripMenuItem? _menuSwitchesHidden;
+        private ToolStripMenuItem? _menuSwitchesHoverReveal;
         private ToolStripMenuItem? _menuOverlayTransparency;
         private ToolStripMenuItem? _menuEditOverlayRects;
         private ToolStripMenuItem? _menuNumberPresentation;
@@ -69,6 +72,7 @@ namespace MyEmguProject
         private Label? _lblBoardValue;
         private Label? _lblCourseValue;
         private Label? _lblNumbersSummary;
+        private Label? _lblHoverInfo;
 
         private ToolStripDropDownButton? _btnModeMenu;
         private ToolStripDropDownButton? _btnBoardMenu;
@@ -112,6 +116,8 @@ namespace MyEmguProject
         private OverlayRectSelection _activeOverlayRect = OverlayRectSelection.None;
         private int _overlayTransparencyAlpha = 160;
         private NumberPresentation _selectedNumberPresentation = NumberPresentation.Binary;
+        private SwKeyVisibilityMode _swKeyVisibilityMode = SwKeyVisibilityMode.Visible;
+        private string? _hoveredSwKeyId;
 
         private static readonly Color BgPrimary = Color.FromArgb(28, 28, 36);
         private static readonly Color BgPanel = Color.FromArgb(36, 36, 46);
@@ -137,6 +143,13 @@ namespace MyEmguProject
             None,
             Main,
             Header
+        }
+
+        private enum SwKeyVisibilityMode
+        {
+            Visible,
+            Hidden,
+            HoverReveal
         }
 
         public BoardWindow()
@@ -199,8 +212,19 @@ namespace MyEmguProject
             _btnHideMenu = new ToolStripDropDownButton("Вид") { ForeColor = Color.White };
             _menuToggleOverlay = new ToolStripMenuItem("Оверлей") { Checked = true };
             _menuToggleOverlay.Click += (s, e) => ToggleOverlayVisibility();
-            _menuToggleSwitches = new ToolStripMenuItem("SW/KEY") { Checked = true };
-            _menuToggleSwitches.Click += (s, e) => ToggleSwitchAndKeysVisibility();
+            _menuToggleSwitches = new ToolStripMenuItem("SW/KEY");
+            _menuSwitchesVisible = new ToolStripMenuItem("Видно");
+            _menuSwitchesVisible.Click += (s, e) => SetSwKeyVisibilityMode(SwKeyVisibilityMode.Visible);
+            _menuSwitchesHidden = new ToolStripMenuItem("Скрыто");
+            _menuSwitchesHidden.Click += (s, e) => SetSwKeyVisibilityMode(SwKeyVisibilityMode.Hidden);
+            _menuSwitchesHoverReveal = new ToolStripMenuItem("Подсветка при наведении");
+            _menuSwitchesHoverReveal.Click += (s, e) => SetSwKeyVisibilityMode(SwKeyVisibilityMode.HoverReveal);
+            _menuToggleSwitches.DropDownItems.AddRange(new ToolStripItem[]
+            {
+                _menuSwitchesVisible,
+                _menuSwitchesHidden,
+                _menuSwitchesHoverReveal
+            });
             _menuOverlayTransparency = new ToolStripMenuItem("Прозрачность прямоугольников...");
             _menuOverlayTransparency.Click += MenuOverlayTransparency_Click;
             _menuEditOverlayRects = new ToolStripMenuItem("Редактировать прямоугольники");
@@ -386,9 +410,11 @@ namespace MyEmguProject
             _pictureBox.Dock = DockStyle.Fill;
             _pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             _pictureBox.BackColor = Color.Black;
+            _pictureBox.Paint += PictureBox_Paint;
             _pictureBox.MouseDown += PictureBox_MouseDown;
             _pictureBox.MouseMove += PictureBox_MouseMove;
             _pictureBox.MouseUp += PictureBox_MouseUp;
+            _pictureBox.MouseLeave += PictureBox_MouseLeave;
             _videoPanel.Controls.Add(_pictureBox);
 
             CreateOverlayControls();
@@ -444,6 +470,20 @@ namespace MyEmguProject
             };
             controlPanel.Controls.Add(_lblNumbersSummary);
 
+            y += 110;
+            _lblHoverInfo = new Label
+            {
+                Location = new Point(0, y),
+                Size = new Size(220, 62),
+                Font = new Font("Consolas", 9f, FontStyle.Bold),
+                ForeColor = Color.WhiteSmoke,
+                BackColor = Color.FromArgb(50, 50, 60),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(10, 8, 10, 8),
+                Text = "Элемент:\n-"
+            };
+            controlPanel.Controls.Add(_lblHoverInfo);
+
             UpdateHideMenuTexts();
             UpdateSelectionMenus();
             UpdateNumberDisplays();
@@ -461,7 +501,7 @@ namespace MyEmguProject
             _lblSwitchNumberView.ForeColor = Color.WhiteSmoke;
             _lblSwitchNumberView.Font = new Font("Consolas", 10f, FontStyle.Bold);
             _lblSwitchNumberView.TextAlign = ContentAlignment.MiddleCenter;
-            _videoPanel.Controls.Add(_lblSwitchNumberView);
+            _pictureBox.Controls.Add(_lblSwitchNumberView);
 
             for (int i = 0; i < SolenoidCount; i++)
             {
@@ -472,7 +512,8 @@ namespace MyEmguProject
                     Size = new Size(54, 90)
                 };
                 _switches[i].StateChanged += (_, _) => OnSwitchStateChanged(switchIndex);
-                _videoPanel.Controls.Add(_switches[i]);
+                AttachSwKeyHoverHandlers(_switches[i], $"SW{i}");
+                _pictureBox.Controls.Add(_switches[i]);
                 _switches[i].BringToFront();
 
                 _switchLabels[i] = new Label
@@ -485,7 +526,7 @@ namespace MyEmguProject
                     TextAlign = ContentAlignment.MiddleCenter,
                     Text = $"SW{i}"
                 };
-                _videoPanel.Controls.Add(_switchLabels[i]);
+                _pictureBox.Controls.Add(_switchLabels[i]);
                 _switchLabels[i].BringToFront();
             }
 
@@ -501,7 +542,8 @@ namespace MyEmguProject
                 BorderColor = KeyIdleBorderColor
             };
             _btnKey0.Click += (s, e) => TriggerKeyChannel(20, _btnKey0, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
-            _videoPanel.Controls.Add(_btnKey0);
+            AttachSwKeyHoverHandlers(_btnKey0, "KEY0");
+            _pictureBox.Controls.Add(_btnKey0);
             _btnKey0.BringToFront();
 
             _btnKey1 = new RoundButton
@@ -512,9 +554,11 @@ namespace MyEmguProject
                 BorderColor = KeyIdleBorderColor
             };
             _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
-            _videoPanel.Controls.Add(_btnKey1);
+            AttachSwKeyHoverHandlers(_btnKey1, "KEY1");
+            _pictureBox.Controls.Add(_btnKey1);
             _btnKey1.BringToFront();
             LoadSavedSwKeyLayout();
+            ApplySwKeyVisibilityMode();
             PositionSwitchLabels();
             _lblSwitchNumberView.BringToFront();
         }
@@ -586,15 +630,188 @@ namespace MyEmguProject
                 _videoPanel.Invalidate();
         }
 
-        private void ToggleSwitchAndKeysVisibility()
+        private void SetSwKeyVisibilityMode(SwKeyVisibilityMode mode)
         {
-            bool willBeVisible = !_switches[0].Visible;
-            foreach (var sw in _switches)
-                sw.Visible = willBeVisible;
-            if (_btnKey0 != null) _btnKey0.Visible = willBeVisible;
-            if (_btnKey1 != null) _btnKey1.Visible = willBeVisible;
-            PositionSwitchLabels();
+            _swKeyVisibilityMode = mode;
+            if (mode != SwKeyVisibilityMode.HoverReveal)
+                _hoveredSwKeyId = null;
+
+            ApplySwKeyVisibilityMode();
             UpdateHideMenuTexts();
+        }
+
+        private void ApplySwKeyVisibilityMode()
+        {
+            bool forceVisible = _editMode;
+            bool hoverRevealMode = !forceVisible && _swKeyVisibilityMode == SwKeyVisibilityMode.HoverReveal;
+            bool controlsVisible = forceVisible || _swKeyVisibilityMode == SwKeyVisibilityMode.Visible;
+            bool interactionLocked = hoverRevealMode;
+
+            for (int i = 0; i < _switches.Length; i++)
+            {
+                _switches[i].Visible = controlsVisible;
+                _switches[i].StealthMode = false;
+                _switches[i].HoverHighlighted = false;
+                _switches[i].InteractionLocked = interactionLocked;
+            }
+
+            ApplyKeyVisibilityMode(_btnKey0, controlsVisible, interactionLocked);
+            ApplyKeyVisibilityMode(_btnKey1, controlsVisible, interactionLocked);
+
+            PositionSwitchLabels();
+            UpdateHoverInfo();
+            UpdateNumberDisplays();
+            _pictureBox.Invalidate();
+        }
+
+        private void ApplyKeyVisibilityMode(RoundButton? button, bool controlsVisible, bool interactionLocked)
+        {
+            if (button == null)
+                return;
+
+            button.Visible = controlsVisible;
+            button.StealthMode = false;
+            button.InteractionLocked = interactionLocked;
+            button.HoverHighlighted = false;
+        }
+
+        private void AttachSwKeyHoverHandlers(Control control, string id)
+        {
+            control.Tag = id;
+            control.MouseEnter += SwKey_MouseEnter;
+            control.MouseLeave += SwKey_MouseLeave;
+        }
+
+        private void SwKey_MouseEnter(object? sender, EventArgs e)
+        {
+            if (IsHoverRevealModeActive())
+                return;
+
+            if (sender is not Control control || control.Tag is not string id)
+                return;
+
+            _hoveredSwKeyId = id;
+            UpdateHoverInfo();
+
+            if (_swKeyVisibilityMode == SwKeyVisibilityMode.HoverReveal)
+                ApplySwKeyVisibilityMode();
+        }
+
+        private void SwKey_MouseLeave(object? sender, EventArgs e)
+        {
+            if (IsHoverRevealModeActive())
+                return;
+
+            if (sender is not Control control || control.Tag is not string id)
+                return;
+
+            if (!string.Equals(_hoveredSwKeyId, id, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _hoveredSwKeyId = null;
+            UpdateHoverInfo();
+
+            if (_swKeyVisibilityMode == SwKeyVisibilityMode.HoverReveal)
+                ApplySwKeyVisibilityMode();
+        }
+
+        private void UpdateHoverInfo()
+        {
+            if (_lblHoverInfo == null)
+                return;
+
+            _lblHoverInfo.Text = string.IsNullOrWhiteSpace(_hoveredSwKeyId)
+                ? "Элемент:\n-"
+                : $"Элемент:\n{_hoveredSwKeyId}";
+        }
+
+        private bool IsHoverRevealModeActive()
+        {
+            return !_editMode && _swKeyVisibilityMode == SwKeyVisibilityMode.HoverReveal;
+        }
+
+        private void UpdateHoverRevealFromPoint(Point location)
+        {
+            string? hoveredId = FindHoveredSwKeyId(location);
+            if (string.Equals(_hoveredSwKeyId, hoveredId, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _hoveredSwKeyId = hoveredId;
+            UpdateHoverInfo();
+            _pictureBox.Invalidate();
+        }
+
+        private string? FindHoveredSwKeyId(Point location)
+        {
+            if (_btnKey0 != null && _btnKey0.Bounds.Contains(location))
+                return "KEY0";
+            if (_btnKey1 != null && _btnKey1.Bounds.Contains(location))
+                return "KEY1";
+
+            for (int i = 0; i < _switches.Length; i++)
+            {
+                if (_switches[i].Bounds.Contains(location))
+                    return $"SW{i}";
+            }
+
+            return null;
+        }
+
+        private void PictureBox_MouseLeave(object? sender, EventArgs e)
+        {
+            if (!IsHoverRevealModeActive())
+                return;
+
+            if (_hoveredSwKeyId == null)
+                return;
+
+            _hoveredSwKeyId = null;
+            UpdateHoverInfo();
+            _pictureBox.Invalidate();
+        }
+
+        private void PictureBox_Paint(object? sender, PaintEventArgs e)
+        {
+            if (!IsHoverRevealModeActive() || string.IsNullOrWhiteSpace(_hoveredSwKeyId))
+                return;
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.CompositingQuality = CompositingQuality.HighQuality;
+
+            if (_hoveredSwKeyId.StartsWith("SW", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(_hoveredSwKeyId.Substring(2), out int switchIndex) &&
+                switchIndex >= 0 && switchIndex < _switches.Length)
+            {
+                DrawSwitchHoverPreview(e.Graphics, _switches[switchIndex].Bounds);
+                return;
+            }
+
+            if (string.Equals(_hoveredSwKeyId, "KEY0", StringComparison.OrdinalIgnoreCase) && _btnKey0 != null)
+            {
+                DrawKeyHoverPreview(e.Graphics, _btnKey0.Bounds);
+                return;
+            }
+
+            if (string.Equals(_hoveredSwKeyId, "KEY1", StringComparison.OrdinalIgnoreCase) && _btnKey1 != null)
+                DrawKeyHoverPreview(e.Graphics, _btnKey1.Bounds);
+        }
+
+        private static void DrawSwitchHoverPreview(Graphics graphics, Rectangle bounds)
+        {
+            var bodyRect = new Rectangle(bounds.X + 1, bounds.Y + 1, Math.Max(1, bounds.Width - 3), Math.Max(1, bounds.Height - 3));
+            int bodyRadius = Math.Max(8, Math.Min(bounds.Width, bounds.Height) / 7);
+            using var fillBrush = new SolidBrush(Color.FromArgb(28, 255, 232, 120));
+            graphics.FillRoundedRectangle(fillBrush, bodyRect, bodyRadius);
+            using var highlightPen = new Pen(Color.FromArgb(235, 255, 232, 120), 2f);
+            graphics.DrawRoundedRectangle(highlightPen, new Rectangle(bounds.X, bounds.Y, bounds.Width - 1, bounds.Height - 1), Math.Max(8, bodyRadius + 1));
+        }
+
+        private static void DrawKeyHoverPreview(Graphics graphics, Rectangle bounds)
+        {
+            using var fillBrush = new SolidBrush(Color.FromArgb(28, 255, 232, 120));
+            graphics.FillEllipse(fillBrush, bounds.X, bounds.Y, bounds.Width - 1, bounds.Height - 1);
+            using var highlightPen = new Pen(Color.FromArgb(235, 255, 232, 120), 3f);
+            graphics.DrawEllipse(highlightPen, bounds.X + 1, bounds.Y + 1, Math.Max(1, bounds.Width - 3), Math.Max(1, bounds.Height - 3));
         }
 
         private void ToggleOverlayVisibility()
@@ -685,6 +902,9 @@ namespace MyEmguProject
 
         private void PictureBox_MouseMove(object? sender, MouseEventArgs e)
         {
+            if (IsHoverRevealModeActive() && !_editOverlayRectsMode)
+                UpdateHoverRevealFromPoint(e.Location);
+
             if (!_editOverlayRectsMode || _activeOverlayRect == OverlayRectSelection.None || _pictureBox.Image == null)
                 return;
 
@@ -810,9 +1030,12 @@ namespace MyEmguProject
             if (_menuToggleOverlay != null)
                 _menuToggleOverlay.Checked = _showOverlay;
 
-            bool switchesVisible = _switches.Length > 0 && _switches[0] != null && _switches[0].Visible;
-            if (_menuToggleSwitches != null)
-                _menuToggleSwitches.Checked = switchesVisible;
+            if (_menuSwitchesVisible != null)
+                _menuSwitchesVisible.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.Visible;
+            if (_menuSwitchesHidden != null)
+                _menuSwitchesHidden.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.Hidden;
+            if (_menuSwitchesHoverReveal != null)
+                _menuSwitchesHoverReveal.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.HoverReveal;
 
             UpdateNumberDisplays();
         }
@@ -868,7 +1091,10 @@ namespace MyEmguProject
 
             _lblSwitchNumberView.Text = $"{GetPresentationLabel(_selectedNumberPresentation)}: {FormatValue(switchValue, _selectedNumberPresentation)}";
             PositionSwitchNumberView();
-            _lblSwitchNumberView.Visible = _switches.Length > 0 && _switches[0].Visible;
+            bool showSwitchNumberView = _switches.Length > 0 &&
+                _switches[0].Visible &&
+                (_editMode || _swKeyVisibilityMode == SwKeyVisibilityMode.Visible);
+            _lblSwitchNumberView.Visible = showSwitchNumberView;
 
             if (_lblNumbersSummary != null)
             {
@@ -945,7 +1171,9 @@ namespace MyEmguProject
 
                 _switchLabels[i].Size = new Size(Math.Max(10, _switches[i].Width), _switchLabels[i].Height);
                 _switchLabels[i].Location = new Point(_switches[i].Left, _switches[i].Bottom + 8);
-                _switchLabels[i].Visible = _switches[i].Visible;
+                bool hovered = string.Equals(_hoveredSwKeyId, $"SW{i}", StringComparison.OrdinalIgnoreCase);
+                _switchLabels[i].Visible = _switches[i].Visible &&
+                    (_editMode || _swKeyVisibilityMode == SwKeyVisibilityMode.Visible || hovered);
             }
         }
 
@@ -958,6 +1186,8 @@ namespace MyEmguProject
             SetEditMode(_switches, _editMode);
             if (_btnKey0 != null && _btnKey1 != null)
                 SetEditMode(new Control[] { _btnKey0, _btnKey1 }, _editMode);
+
+            ApplySwKeyVisibilityMode();
 
             if (_editMode)
                 OpenSwKeyEditorWindow();
