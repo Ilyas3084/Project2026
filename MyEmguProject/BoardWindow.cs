@@ -62,6 +62,8 @@ namespace MyEmguProject
         private ToolStripMenuItem? _menuSwitchesHoverReveal;
         private ToolStripMenuItem? _menuOverlayTransparency;
         private ToolStripMenuItem? _menuEditOverlayRects;
+        private ToolStripMenuItem? _menuAddOverlayRect;
+        private ToolStripMenuItem? _menuRemoveOverlayRect;
         private ToolStripMenuItem? _menuNumberPresentation;
         private ToolStripDropDownButton? _btnEditOverlayMenu;
         private ToolStripMenuItem? _menuEditOverlayEnabled;
@@ -111,9 +113,12 @@ namespace MyEmguProject
         private bool _overlayRectResizing;
         private Rectangle _mainOverlayRect;
         private Rectangle _headerOverlayRect;
+        private readonly List<CustomOverlayRect> _customOverlayRects = new();
         private Rectangle _overlayRectStartBounds;
         private Point _overlayMouseDownImage;
         private OverlayRectSelection _activeOverlayRect = OverlayRectSelection.None;
+        private int _activeCustomOverlayRectIndex = -1;
+        private int _previewCustomOverlayRectIndex = -1;
         private int _overlayTransparencyAlpha = 160;
         private NumberPresentation _selectedNumberPresentation = NumberPresentation.Binary;
         private SwKeyVisibilityMode _swKeyVisibilityMode = SwKeyVisibilityMode.Visible;
@@ -142,7 +147,15 @@ namespace MyEmguProject
         {
             None,
             Main,
-            Header
+            Header,
+            Custom
+        }
+
+        private sealed class CustomOverlayRect
+        {
+            public string Name { get; set; } = string.Empty;
+            public Rectangle Bounds { get; set; }
+            public Color Color { get; set; } = Color.DeepSkyBlue;
         }
 
         private enum SwKeyVisibilityMode
@@ -229,6 +242,10 @@ namespace MyEmguProject
             _menuOverlayTransparency.Click += MenuOverlayTransparency_Click;
             _menuEditOverlayRects = new ToolStripMenuItem("Редактировать прямоугольники");
             _menuEditOverlayRects.Click += MenuEditOverlayRects_Click;
+            _menuAddOverlayRect = new ToolStripMenuItem("Добавить прямоугольник...");
+            _menuAddOverlayRect.Click += MenuAddOverlayRect_Click;
+            _menuRemoveOverlayRect = new ToolStripMenuItem("Удалить прямоугольник...");
+            _menuRemoveOverlayRect.Click += MenuRemoveOverlayRect_Click;
             _menuNumberPresentation = new ToolStripMenuItem("Представление чисел");
             _menuNumberBinary = new ToolStripMenuItem("Двоичная");
             _menuNumberBinary.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Binary);
@@ -243,6 +260,8 @@ namespace MyEmguProject
             _btnHideMenu.DropDownItems.Add(new ToolStripSeparator());
             _btnHideMenu.DropDownItems.Add(_menuOverlayTransparency);
             _btnHideMenu.DropDownItems.Add(_menuEditOverlayRects);
+            _btnHideMenu.DropDownItems.Add(_menuAddOverlayRect);
+            _btnHideMenu.DropDownItems.Add(_menuRemoveOverlayRect);
             _menuNumberPresentation.DropDownItems.AddRange(new ToolStripItem[]
             {
                 _menuNumberBinary, _menuNumberOctal, _menuNumberDecimal, _menuNumberHex
@@ -840,6 +859,88 @@ namespace MyEmguProject
                 : "Редактирование прямоугольников выключено");
         }
 
+        private void MenuAddOverlayRect_Click(object? sender, EventArgs e)
+        {
+            using var colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                FullOpen = true,
+                Color = Color.DeepSkyBlue
+            };
+
+            if (colorDialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            Size frameSize = _pictureBox.Image?.Size ?? new Size(640, 480);
+            InitializeOverlayLayoutIfNeeded(frameSize);
+
+            var rectSize = new Size(
+                Math.Max(20, _mainOverlayRect.Width / 5),
+                Math.Max(14, _mainOverlayRect.Height / 4));
+
+            int x = Math.Max(0, Math.Min(frameSize.Width - rectSize.Width, _mainOverlayRect.X + 20));
+            int y = Math.Max(0, Math.Min(frameSize.Height - rectSize.Height, _mainOverlayRect.Bottom + 20));
+
+            _customOverlayRects.Add(new CustomOverlayRect
+            {
+                Name = $"Контур {_customOverlayRects.Count + 1}",
+                Bounds = new Rectangle(x, y, rectSize.Width, rectSize.Height),
+                Color = colorDialog.Color
+            });
+
+            _pictureBox.Invalidate();
+            UpdateHideMenuTexts();
+            UpdateStatusText("Добавлен новый полупрозрачный прямоугольник");
+        }
+
+        private void MenuRemoveOverlayRect_Click(object? sender, EventArgs e)
+        {
+            if (_customOverlayRects.Count == 0)
+            {
+                MessageBox.Show(
+                    "Сейчас нет пользовательских прямоугольников для удаления.",
+                    "Удаление прямоугольника",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            using var dialog = new OverlayRectDeleteDialog(
+                _customOverlayRects.Select(rect => rect.Name).ToList(),
+                SetPreviewCustomOverlayRectIndex);
+
+            try
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                int index = dialog.SelectedIndex;
+                if (index < 0 || index >= _customOverlayRects.Count)
+                    return;
+
+                string removedName = _customOverlayRects[index].Name;
+                _customOverlayRects.RemoveAt(index);
+                if (_activeCustomOverlayRectIndex == index)
+                    _activeCustomOverlayRectIndex = -1;
+                else if (_activeCustomOverlayRectIndex > index)
+                    _activeCustomOverlayRectIndex--;
+
+                _pictureBox.Invalidate();
+                UpdateHideMenuTexts();
+                UpdateStatusText($"Удалён прямоугольник: {removedName}");
+            }
+            finally
+            {
+                SetPreviewCustomOverlayRectIndex(-1);
+            }
+        }
+
+        private void SetPreviewCustomOverlayRectIndex(int index)
+        {
+            _previewCustomOverlayRectIndex = index >= 0 && index < _customOverlayRects.Count ? index : -1;
+            _pictureBox.Invalidate();
+        }
+
         private void InitializeOverlayLayoutIfNeeded(Size frameSize)
         {
             if (_overlayLayoutInitialized)
@@ -857,7 +958,14 @@ namespace MyEmguProject
 
         private Rectangle GetOverlayRect(OverlayRectSelection selection)
         {
-            return selection == OverlayRectSelection.Main ? _mainOverlayRect : _headerOverlayRect;
+            return selection switch
+            {
+                OverlayRectSelection.Main => _mainOverlayRect,
+                OverlayRectSelection.Header => _headerOverlayRect,
+                OverlayRectSelection.Custom when _activeCustomOverlayRectIndex >= 0 && _activeCustomOverlayRectIndex < _customOverlayRects.Count
+                    => _customOverlayRects[_activeCustomOverlayRectIndex].Bounds,
+                _ => Rectangle.Empty
+            };
         }
 
         private void SetOverlayRect(OverlayRectSelection selection, Rectangle rect)
@@ -866,6 +974,10 @@ namespace MyEmguProject
                 _mainOverlayRect = rect;
             else if (selection == OverlayRectSelection.Header)
                 _headerOverlayRect = rect;
+            else if (selection == OverlayRectSelection.Custom &&
+                     _activeCustomOverlayRectIndex >= 0 &&
+                     _activeCustomOverlayRectIndex < _customOverlayRects.Count)
+                _customOverlayRects[_activeCustomOverlayRectIndex].Bounds = rect;
         }
 
         private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
@@ -877,16 +989,27 @@ namespace MyEmguProject
                 return;
 
             const int gripSize = 12;
+            _activeCustomOverlayRectIndex = -1;
 
-            if (_mainOverlayRect.Contains(imagePoint))
+            for (int i = _customOverlayRects.Count - 1; i >= 0; i--)
+            {
+                if (!_customOverlayRects[i].Bounds.Contains(imagePoint))
+                    continue;
+
+                _activeOverlayRect = OverlayRectSelection.Custom;
+                _activeCustomOverlayRectIndex = i;
+                break;
+            }
+
+            if (_activeOverlayRect == OverlayRectSelection.None && _mainOverlayRect.Contains(imagePoint))
             {
                 _activeOverlayRect = OverlayRectSelection.Main;
             }
-            else if (_headerOverlayRect.Contains(imagePoint))
+            else if (_activeOverlayRect == OverlayRectSelection.None && _headerOverlayRect.Contains(imagePoint))
             {
                 _activeOverlayRect = OverlayRectSelection.Header;
             }
-            else
+            else if (_activeOverlayRect == OverlayRectSelection.None)
             {
                 _activeOverlayRect = OverlayRectSelection.None;
                 return;
@@ -918,8 +1041,10 @@ namespace MyEmguProject
 
             if (_overlayRectResizing)
             {
-                newRect.Width = Math.Max(120, _overlayRectStartBounds.Width + deltaX);
-                newRect.Height = Math.Max(40, _overlayRectStartBounds.Height + deltaY);
+                int minWidth = _activeOverlayRect == OverlayRectSelection.Custom ? 8 : 120;
+                int minHeight = _activeOverlayRect == OverlayRectSelection.Custom ? 8 : 40;
+                newRect.Width = Math.Max(minWidth, _overlayRectStartBounds.Width + deltaX);
+                newRect.Height = Math.Max(minHeight, _overlayRectStartBounds.Height + deltaY);
             }
             else if (_overlayRectDragging)
             {
@@ -943,6 +1068,7 @@ namespace MyEmguProject
 
             _pictureBox.Capture = false;
             _activeOverlayRect = OverlayRectSelection.None;
+            _activeCustomOverlayRectIndex = -1;
             _overlayRectDragging = false;
             _overlayRectResizing = false;
         }
@@ -1036,6 +1162,8 @@ namespace MyEmguProject
                 _menuSwitchesHidden.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.Hidden;
             if (_menuSwitchesHoverReveal != null)
                 _menuSwitchesHoverReveal.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.HoverReveal;
+            if (_menuRemoveOverlayRect != null)
+                _menuRemoveOverlayRect.Enabled = _customOverlayRects.Count > 0;
 
             UpdateNumberDisplays();
         }
@@ -1641,6 +1769,20 @@ namespace MyEmguProject
                         g.DrawString(line2, subFont, subBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
                     }
 
+                    for (int i = 0; i < _customOverlayRects.Count; i++)
+                    {
+                        var customRect = _customOverlayRects[i];
+                        using var fillBrush = new SolidBrush(Color.FromArgb(_overlayTransparencyAlpha, customRect.Color));
+                        g.FillRectangle(fillBrush, customRect.Bounds);
+
+                        float borderWidth = i == _previewCustomOverlayRectIndex ? 4f : 2f;
+                        Color borderColor = i == _previewCustomOverlayRectIndex
+                            ? Color.FromArgb(255, 255, 240, 120)
+                            : Color.FromArgb(230, customRect.Color);
+                        using var borderPen = new Pen(borderColor, borderWidth);
+                        g.DrawRectangle(borderPen, customRect.Bounds);
+                    }
+
                     float ledPaddingX = Math.Max(8f, _mainOverlayRect.Width * 0.037f);
                     float ledPaddingTop = Math.Max(5f, _mainOverlayRect.Height * 0.06f);
                     float ledBandWidth = Math.Max(60f, _mainOverlayRect.Width - ledPaddingX * 2f);
@@ -1688,6 +1830,8 @@ namespace MyEmguProject
                     {
                         DrawOverlayEditHandle(g, _mainOverlayRect);
                         DrawOverlayEditHandle(g, _headerOverlayRect);
+                        foreach (var customRect in _customOverlayRects)
+                            DrawOverlayEditHandle(g, customRect.Bounds);
                     }
                 }
 
@@ -2336,6 +2480,85 @@ namespace MyEmguProject
 
             AcceptButton = btnOk;
             CancelButton = btnCancel;
+        }
+    }
+
+    internal sealed class OverlayRectDeleteDialog : Form
+    {
+        private readonly ListBox _listBox;
+        private readonly Action<int>? _selectionChanged;
+
+        public int SelectedIndex => _listBox.SelectedIndex;
+
+        public OverlayRectDeleteDialog(IReadOnlyList<string> rectNames, Action<int>? selectionChanged = null)
+        {
+            _selectionChanged = selectionChanged;
+            Text = "Удалить прямоугольник";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterParent;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ShowInTaskbar = false;
+            ClientSize = new Size(320, 235);
+            BackColor = Color.FromArgb(36, 36, 46);
+            Font = new Font("Segoe UI", 9.5f);
+
+            var lblPrompt = new Label
+            {
+                Text = "Выберите прямоугольник:",
+                AutoSize = true,
+                ForeColor = Color.WhiteSmoke,
+                Location = new Point(18, 16)
+            };
+
+            _listBox = new ListBox
+            {
+                Location = new Point(18, 42),
+                Size = new Size(284, 130),
+                BackColor = Color.FromArgb(50, 50, 60),
+                ForeColor = Color.WhiteSmoke,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            _listBox.SelectedIndexChanged += (_, _) => _selectionChanged?.Invoke(_listBox.SelectedIndex);
+
+            foreach (var rectName in rectNames)
+                _listBox.Items.Add(rectName);
+
+            if (_listBox.Items.Count > 0)
+                _listBox.SelectedIndex = 0;
+
+            var btnOk = new Button
+            {
+                Text = "Удалить",
+                DialogResult = DialogResult.OK,
+                Size = new Size(86, 32),
+                Location = new Point(124, 188),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnOk.FlatAppearance.BorderSize = 0;
+
+            var btnCancel = new Button
+            {
+                Text = "Отмена",
+                DialogResult = DialogResult.Cancel,
+                Size = new Size(86, 32),
+                Location = new Point(216, 188),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnCancel.FlatAppearance.BorderSize = 0;
+
+            Controls.Add(lblPrompt);
+            Controls.Add(_listBox);
+            Controls.Add(btnOk);
+            Controls.Add(btnCancel);
+
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
+            FormClosed += (_, _) => _selectionChanged?.Invoke(-1);
         }
     }
 
