@@ -73,8 +73,8 @@ namespace MyEmguProject
         private Label? _lblModeValue;
         private Label? _lblBoardValue;
         private Label? _lblCourseValue;
-        private Label? _lblNumbersSummary;
-        private Label? _lblHoverInfo;
+        private readonly Label _lblNumbersSummary = new();
+        private readonly Label _lblHoverInfo = new();
 
         private ToolStripDropDownButton? _btnModeMenu;
         private ToolStripDropDownButton? _btnBoardMenu;
@@ -124,8 +124,18 @@ namespace MyEmguProject
         private SwKeyVisibilityMode _swKeyVisibilityMode = SwKeyVisibilityMode.Visible;
         private string? _hoveredSwKeyId;
 
-        private static readonly Color BgPrimary = Color.FromArgb(28, 28, 36);
-        private static readonly Color BgPanel = Color.FromArgb(36, 36, 46);
+        private static readonly Color BgPrimary = Color.FromArgb(8, 28, 36);
+        private static readonly Color BgCanvas = Color.FromArgb(11, 36, 47);
+        private static readonly Color BgPanel = Color.FromArgb(15, 41, 54);
+        private static readonly Color SurfacePrimary = Color.FromArgb(24, 53, 67);
+        private static readonly Color SurfaceSecondary = Color.FromArgb(20, 47, 60);
+        private static readonly Color SurfaceTertiary = Color.FromArgb(16, 39, 50);
+        private static readonly Color BorderSoft = Color.FromArgb(72, 117, 136);
+        private static readonly Color BorderStrong = Color.FromArgb(92, 170, 196);
+        private static readonly Color AccentCyan = Color.FromArgb(90, 215, 255);
+        private static readonly Color AccentBlue = Color.FromArgb(67, 166, 230);
+        private static readonly Color AccentMuted = Color.FromArgb(126, 194, 215);
+        private static readonly Color AccentPill = Color.FromArgb(38, 77, 94);
         private static readonly Color KeyIdleColor = Color.FromArgb(33, 110, 210);
         private static readonly Color KeyIdleBorderColor = Color.FromArgb(125, 190, 255);
         private static readonly Color KeyActiveColor = Color.FromArgb(0, 150, 70);
@@ -203,10 +213,10 @@ namespace MyEmguProject
                 RowCount = 3,
                 BackColor = BackColor,
                 Margin = new Padding(0),
-                Padding = new Padding(0)
+                Padding = new Padding(18, 14, 18, 18)
             };
-            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42f));
-            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54f));
+            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82f));
+            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96f));
             rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             Controls.Add(rootLayout);
 
@@ -214,10 +224,10 @@ namespace MyEmguProject
             {
                 Dock = DockStyle.Fill,
                 GripStyle = ToolStripGripStyle.Hidden,
-                BackColor = Color.FromArgb(45, 45, 55),
+                BackColor = SurfacePrimary,
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10f, FontStyle.Regular),
-                Padding = new Padding(8, 4, 8, 4),
+                Padding = new Padding(12, 10, 12, 10),
                 RenderMode = ToolStripRenderMode.Professional,
                 Renderer = new TopMenuRenderer()
             };
@@ -242,9 +252,9 @@ namespace MyEmguProject
             _menuOverlayTransparency.Click += MenuOverlayTransparency_Click;
             _menuEditOverlayRects = new ToolStripMenuItem("Редактировать прямоугольники");
             _menuEditOverlayRects.Click += MenuEditOverlayRects_Click;
-            _menuAddOverlayRect = new ToolStripMenuItem("Добавить прямоугольник...");
+            _menuAddOverlayRect = new ToolStripMenuItem("Добавить контур...");
             _menuAddOverlayRect.Click += MenuAddOverlayRect_Click;
-            _menuRemoveOverlayRect = new ToolStripMenuItem("Удалить прямоугольник...");
+            _menuRemoveOverlayRect = new ToolStripMenuItem("Удалить контур...");
             _menuRemoveOverlayRect.Click += MenuRemoveOverlayRect_Click;
             _menuNumberPresentation = new ToolStripMenuItem("Представление чисел");
             _menuNumberBinary = new ToolStripMenuItem("Двоичная");
@@ -391,7 +401,29 @@ namespace MyEmguProject
             _topToolStrip.Items.Add(lblComPort);
             _topToolStrip.Items.Add(comPortHost);
 
-            rootLayout.Controls.Add(_topToolStrip, 0, 0);
+            var toolbarHost = new ThemedSurfacePanel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 0, 0, 10),
+                Padding = new Padding(10, 8, 10, 8),
+                SurfaceColor = SurfacePrimary,
+                BorderColor = Color.FromArgb(24, BorderSoft),
+                GlowColor = Color.FromArgb(26, AccentBlue),
+                CornerRadius = 24
+            };
+            toolbarHost.Controls.Add(_topToolStrip);
+            rootLayout.Controls.Add(toolbarHost, 0, 0);
+
+            var selectionHost = new ThemedSurfacePanel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 0, 0, 14),
+                Padding = new Padding(14, 10, 14, 14),
+                SurfaceColor = SurfaceSecondary,
+                BorderColor = BorderSoft,
+                GlowColor = Color.FromArgb(20, AccentCyan),
+                CornerRadius = 24
+            };
 
             var selectionStrip = new FlowLayoutPanel
             {
@@ -399,15 +431,19 @@ namespace MyEmguProject
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
                 AutoSize = false,
-                BackColor = Color.FromArgb(18, 108, 158),
-                Padding = new Padding(12, 8, 12, 8),
+                BackColor = SurfaceSecondary,
+                Padding = new Padding(6, 2, 6, 6),
                 Margin = new Padding(0)
             };
 
+            var selectionIntro = CreateSectionPill("СОСТОЯНИЕ СЕССИИ");
+            selectionIntro.Margin = new Padding(4, 10, 14, 6);
+            selectionStrip.Controls.Add(selectionIntro);
             _lblModeValue = CreateSelectionCard(selectionStrip, "Режим");
             _lblBoardValue = CreateSelectionCard(selectionStrip, "Плата");
             _lblCourseValue = CreateSelectionCard(selectionStrip, "Курс");
-            rootLayout.Controls.Add(selectionStrip, 0, 1);
+            selectionHost.Controls.Add(selectionStrip);
+            rootLayout.Controls.Add(selectionHost, 0, 1);
 
             var mainLayout = new TableLayoutPanel
             {
@@ -418,17 +454,28 @@ namespace MyEmguProject
                 Margin = new Padding(0),
                 Padding = new Padding(0)
             };
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78f));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22f));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 73f));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 27f));
             rootLayout.Controls.Add(mainLayout, 0, 2);
+
+            var videoHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 0, 10, 0),
+                Padding = new Padding(0),
+                BackColor = BgCanvas
+            };
+            mainLayout.Controls.Add(videoHost, 0, 0);
 
             _videoPanel.Dock = DockStyle.Fill;
             _videoPanel.BackColor = Color.Black;
-            mainLayout.Controls.Add(_videoPanel, 0, 0);
+            _videoPanel.Margin = new Padding(0);
+            _videoPanel.Padding = new Padding(0);
+            videoHost.Controls.Add(_videoPanel);
 
             _pictureBox.Dock = DockStyle.Fill;
             _pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
-            _pictureBox.BackColor = Color.Black;
+            _pictureBox.BackColor = Color.FromArgb(7, 19, 24);
             _pictureBox.Paint += PictureBox_Paint;
             _pictureBox.MouseDown += PictureBox_MouseDown;
             _pictureBox.MouseMove += PictureBox_MouseMove;
@@ -438,70 +485,62 @@ namespace MyEmguProject
 
             CreateOverlayControls();
 
+            var controlHost = new ThemedSurfacePanel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0),
+                Padding = new Padding(16, 56, 16, 18),
+                SurfaceColor = SurfaceTertiary,
+                BorderColor = BorderSoft,
+                GlowColor = Color.FromArgb(18, AccentCyan),
+                CornerRadius = 28
+            };
+            mainLayout.Controls.Add(controlHost, 1, 0);
+
             var controlPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = BgPanel,
-                Padding = new Padding(16, 24, 16, 24)
+                BackColor = SurfaceTertiary,
+                Padding = new Padding(0)
             };
-            mainLayout.Controls.Add(controlPanel, 1, 0);
+            controlHost.Controls.Add(controlPanel);
+            var controlBadge = CreateSectionPill("ИНСТРУМЕНТЫ И СТАТУС");
+            controlBadge.Location = new Point(16, 14);
+            controlHost.Controls.Add(controlBadge);
+            controlBadge.BringToFront();
 
             int y = 0;
             controlPanel.Controls.Add(new Label
             {
-                Text = "Управление соленоидами",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Text = "Лабораторный пульт",
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 ForeColor = Color.WhiteSmoke,
                 AutoSize = true,
                 Location = new Point(0, y)
             });
-            y += 44;
+            y += 38;
 
             controlPanel.Controls.Add(new Label
             {
-                Text = "ON = ON, OFF = OFF\nKEY0 = CH20, KEY1 = CH21",
-                Font = new Font("Segoe UI", 10f),
-                ForeColor = Color.Gainsboro,
-                AutoSize = true,
+                Text = "Управление переключателями, клавишами и визуальными контурами в едином окне.",
+                Font = new Font("Segoe UI", 10.5f),
+                ForeColor = AccentMuted,
+                Size = new Size(310, 44),
                 Location = new Point(0, y)
             });
-            y += 56;
+            y += 64;
 
-            _lblStatus.Location = new Point(0, y);
-            _lblStatus.Size = new Size(220, 88);
+            CreateInfoBlock(controlPanel, _lblStatus, "КАНАЛЫ И СВЯЗЬ", ref y, 108);
             _lblStatus.Font = new Font("Consolas", 10f, FontStyle.Bold);
-            _lblStatus.ForeColor = Color.WhiteSmoke;
-            _lblStatus.BackColor = Color.FromArgb(50, 50, 60);
-            _lblStatus.TextAlign = ContentAlignment.MiddleCenter;
+            _lblStatus.TextAlign = ContentAlignment.MiddleLeft;
             _lblStatus.Text = "Подключение...";
-            controlPanel.Controls.Add(_lblStatus);
 
-            y += 104;
-            _lblNumbersSummary = new Label
-            {
-                Location = new Point(0, y),
-                Size = new Size(220, 96),
-                Font = new Font("Consolas", 9f, FontStyle.Bold),
-                ForeColor = Color.WhiteSmoke,
-                BackColor = Color.FromArgb(42, 136, 190),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(10, 8, 10, 8)
-            };
-            controlPanel.Controls.Add(_lblNumbersSummary);
+            CreateInfoBlock(controlPanel, _lblNumbersSummary, "ТЕКУЩЕЕ ЗНАЧЕНИЕ", ref y, 112);
+            _lblNumbersSummary.Font = new Font("Consolas", 9f, FontStyle.Bold);
 
-            y += 110;
-            _lblHoverInfo = new Label
-            {
-                Location = new Point(0, y),
-                Size = new Size(220, 62),
-                Font = new Font("Consolas", 9f, FontStyle.Bold),
-                ForeColor = Color.WhiteSmoke,
-                BackColor = Color.FromArgb(50, 50, 60),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(10, 8, 10, 8),
-                Text = "Элемент:\n-"
-            };
-            controlPanel.Controls.Add(_lblHoverInfo);
+            CreateInfoBlock(controlPanel, _lblHoverInfo, "ПОД КУРСОРОМ", ref y, 96);
+            _lblHoverInfo.Font = new Font("Consolas", 9f, FontStyle.Bold);
+            _lblHoverInfo.Text = "Элемент:\n-";
 
             UpdateHideMenuTexts();
             UpdateSelectionMenus();
@@ -890,7 +929,7 @@ namespace MyEmguProject
 
             _pictureBox.Invalidate();
             UpdateHideMenuTexts();
-            UpdateStatusText("Добавлен новый полупрозрачный прямоугольник");
+            UpdateStatusText("Добавлен новый полупрозрачный контур");
         }
 
         private void MenuRemoveOverlayRect_Click(object? sender, EventArgs e)
@@ -898,8 +937,8 @@ namespace MyEmguProject
             if (_customOverlayRects.Count == 0)
             {
                 MessageBox.Show(
-                    "Сейчас нет пользовательских прямоугольников для удаления.",
-                    "Удаление прямоугольника",
+                    "Сейчас нет пользовательских контуров для удаления.",
+                    "Удаление контура",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
@@ -927,7 +966,7 @@ namespace MyEmguProject
 
                 _pictureBox.Invalidate();
                 UpdateHideMenuTexts();
-                UpdateStatusText($"Удалён прямоугольник: {removedName}");
+                UpdateStatusText($"Удалён контур: {removedName}");
             }
             finally
             {
@@ -1119,21 +1158,24 @@ namespace MyEmguProject
 
         private Label CreateSelectionCard(Control parent, string title)
         {
-            var card = new Panel
+            var card = new ThemedSurfacePanel
             {
-                Size = new Size(220, 38),
-                BackColor = Color.FromArgb(50, 50, 60),
-                Margin = new Padding(0, 0, 10, 0),
-                Padding = new Padding(10, 4, 10, 4)
+                Size = new Size(236, 44),
+                SurfaceColor = Color.FromArgb(31, 63, 77),
+                BorderColor = BorderSoft,
+                GlowColor = Color.FromArgb(12, AccentCyan),
+                CornerRadius = 18,
+                Margin = new Padding(0, 4, 12, 4),
+                Padding = new Padding(12, 6, 12, 6)
             };
 
             var titleLabel = new Label
             {
                 Text = title,
                 Dock = DockStyle.Left,
-                Width = 62,
-                ForeColor = Color.Gainsboro,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Width = 72,
+                ForeColor = AccentMuted,
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
@@ -1141,7 +1183,7 @@ namespace MyEmguProject
             {
                 Dock = DockStyle.Fill,
                 ForeColor = Color.WhiteSmoke,
-                Font = new Font("Segoe UI", 9f, FontStyle.Regular),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
@@ -1149,6 +1191,54 @@ namespace MyEmguProject
             card.Controls.Add(titleLabel);
             parent.Controls.Add(card);
             return valueLabel;
+        }
+
+        private Label CreateSectionPill(string text)
+        {
+            return new Label
+            {
+                AutoSize = true,
+                Text = text,
+                ForeColor = AccentMuted,
+                BackColor = AccentPill,
+                Font = new Font("Segoe UI", 8.25f, FontStyle.Bold),
+                Padding = new Padding(12, 7, 12, 7),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+        }
+
+        private void CreateInfoBlock(Control parent, Label label, string title, ref int y, int height)
+        {
+            var block = new ThemedSurfacePanel
+            {
+                Location = new Point(0, y),
+                Size = new Size(320, height),
+                SurfaceColor = Color.FromArgb(25, 53, 67),
+                BorderColor = BorderSoft,
+                GlowColor = Color.FromArgb(10, AccentBlue),
+                CornerRadius = 22,
+                Padding = new Padding(14, 14, 14, 14)
+            };
+
+            var titleLabel = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Top,
+                Height = 22,
+                ForeColor = AccentMuted,
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            label.Dock = DockStyle.Fill;
+            label.BackColor = Color.Transparent;
+            label.ForeColor = Color.WhiteSmoke;
+            label.Padding = new Padding(0, 6, 0, 0);
+
+            block.Controls.Add(label);
+            block.Controls.Add(titleLabel);
+            parent.Controls.Add(block);
+            y += height + 14;
         }
 
         private void UpdateHideMenuTexts()
@@ -2321,11 +2411,75 @@ namespace MyEmguProject
         }
     }
 
+    internal sealed class ThemedSurfacePanel : Panel
+    {
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public Color SurfaceColor { get; set; } = Color.FromArgb(24, 53, 67);
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public Color BorderColor { get; set; } = Color.FromArgb(72, 117, 136);
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public Color GlowColor { get; set; } = Color.FromArgb(18, 90, 215, 255);
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public int CornerRadius { get; set; } = 22;
+
+        public ThemedSurfacePanel()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw |
+                ControlStyles.SupportsTransparentBackColor,
+                true);
+            BackColor = Color.Transparent;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            if (Parent != null)
+            {
+                using var parentBrush = new SolidBrush(Parent.BackColor);
+                e.Graphics.FillRectangle(parentBrush, ClientRectangle);
+            }
+            else
+            {
+                base.OnPaintBackground(e);
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            var bounds = new Rectangle(1, 1, Math.Max(1, Width - 3), Math.Max(1, Height - 3));
+
+            using (var glowPen = new Pen(GlowColor, 10f))
+            {
+                e.Graphics.DrawRoundedRectangle(glowPen, new Rectangle(6, 8, Math.Max(1, Width - 13), Math.Max(1, Height - 17)), Math.Max(8, CornerRadius));
+            }
+
+            using (var fillBrush = new LinearGradientBrush(
+                bounds,
+                ControlPaint.Light(SurfaceColor, 0.05f),
+                ControlPaint.Dark(SurfaceColor, 0.08f),
+                90f))
+            {
+                e.Graphics.FillRoundedRectangle(fillBrush, bounds, CornerRadius);
+            }
+
+            using (var borderPen = new Pen(BorderColor, 1.4f))
+            {
+                e.Graphics.DrawRoundedRectangle(borderPen, bounds, CornerRadius);
+            }
+        }
+    }
+
     internal sealed class TopMenuRenderer : ToolStripProfessionalRenderer
     {
-        private static readonly Color HoverBackColor = Color.White;
-        private static readonly Color PressedBackColor = Color.FromArgb(235, 235, 235);
-        private static readonly Color MenuBackColor = Color.FromArgb(45, 45, 55);
+        private static readonly Color HoverBackColor = Color.FromArgb(42, 96, 118);
+        private static readonly Color PressedBackColor = Color.FromArgb(57, 126, 154);
+        private static readonly Color MenuBackColor = Color.FromArgb(24, 53, 67);
 
         public TopMenuRenderer() : base(new TopMenuColorTable())
         {
@@ -2354,9 +2508,12 @@ namespace MyEmguProject
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            bool highlighted = e.Item.Selected || e.Item.Pressed;
-            e.TextColor = highlighted ? Color.Black : Color.White;
+            e.TextColor = Color.WhiteSmoke;
             base.OnRenderItemText(e);
+        }
+
+        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        {
         }
 
         private static void FillMenuItemBackground(ToolStripItemRenderEventArgs e)
@@ -2379,26 +2536,26 @@ namespace MyEmguProject
 
     internal sealed class TopMenuColorTable : ProfessionalColorTable
     {
-        private static readonly Color MenuBackColor = Color.FromArgb(45, 45, 55);
+        private static readonly Color MenuBackColor = Color.FromArgb(24, 53, 67);
 
         public override Color ToolStripDropDownBackground => MenuBackColor;
         public override Color ImageMarginGradientBegin => MenuBackColor;
         public override Color ImageMarginGradientMiddle => MenuBackColor;
         public override Color ImageMarginGradientEnd => MenuBackColor;
-        public override Color MenuBorder => Color.White;
-        public override Color MenuItemBorder => Color.White;
-        public override Color MenuItemSelected => Color.White;
-        public override Color MenuItemSelectedGradientBegin => Color.White;
-        public override Color MenuItemSelectedGradientEnd => Color.White;
-        public override Color MenuItemPressedGradientBegin => Color.FromArgb(235, 235, 235);
-        public override Color MenuItemPressedGradientMiddle => Color.FromArgb(235, 235, 235);
-        public override Color MenuItemPressedGradientEnd => Color.FromArgb(235, 235, 235);
-        public override Color ButtonSelectedHighlight => Color.White;
-        public override Color ButtonSelectedHighlightBorder => Color.White;
-        public override Color ButtonPressedHighlight => Color.FromArgb(235, 235, 235);
-        public override Color ButtonPressedHighlightBorder => Color.White;
-        public override Color SeparatorDark => Color.FromArgb(90, 90, 100);
-        public override Color SeparatorLight => Color.FromArgb(90, 90, 100);
+        public override Color MenuBorder => Color.FromArgb(72, 117, 136);
+        public override Color MenuItemBorder => Color.FromArgb(72, 117, 136);
+        public override Color MenuItemSelected => Color.FromArgb(42, 96, 118);
+        public override Color MenuItemSelectedGradientBegin => Color.FromArgb(42, 96, 118);
+        public override Color MenuItemSelectedGradientEnd => Color.FromArgb(42, 96, 118);
+        public override Color MenuItemPressedGradientBegin => Color.FromArgb(57, 126, 154);
+        public override Color MenuItemPressedGradientMiddle => Color.FromArgb(57, 126, 154);
+        public override Color MenuItemPressedGradientEnd => Color.FromArgb(57, 126, 154);
+        public override Color ButtonSelectedHighlight => Color.FromArgb(42, 96, 118);
+        public override Color ButtonSelectedHighlightBorder => Color.FromArgb(72, 117, 136);
+        public override Color ButtonPressedHighlight => Color.FromArgb(57, 126, 154);
+        public override Color ButtonPressedHighlightBorder => Color.FromArgb(72, 117, 136);
+        public override Color SeparatorDark => Color.FromArgb(61, 92, 109);
+        public override Color SeparatorLight => Color.FromArgb(61, 92, 109);
     }
 
     internal sealed class OverlayTransparencyDialog : Form
@@ -2493,7 +2650,7 @@ namespace MyEmguProject
         public OverlayRectDeleteDialog(IReadOnlyList<string> rectNames, Action<int>? selectionChanged = null)
         {
             _selectionChanged = selectionChanged;
-            Text = "Удалить прямоугольник";
+            Text = "Удалить контур";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
             MaximizeBox = false;
@@ -2505,7 +2662,7 @@ namespace MyEmguProject
 
             var lblPrompt = new Label
             {
-                Text = "Выберите прямоугольник:",
+                Text = "Выберите контур:",
                 AutoSize = true,
                 ForeColor = Color.WhiteSmoke,
                 Location = new Point(18, 16)
