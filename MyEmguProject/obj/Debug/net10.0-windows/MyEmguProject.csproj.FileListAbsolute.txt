@@ -133,3 +133,8 @@ C:\tmp\MyEmguProject-session-label\MyEmguProject.deps.json
 C:\tmp\MyEmguProject-session-label\MyEmguProject.runtimeconfig.json
 C:\tmp\MyEmguProject-session-label\MyEmguProject.dll
 C:\tmp\MyEmguProject-session-label\MyEmguProject.pdb
+C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.exe
+C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.deps.json
+C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.runtimeconfig.json
+C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.dll
+C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.pdb

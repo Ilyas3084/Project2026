@@ -43,6 +43,7 @@ namespace MyEmguProject
         private int _pulseVisualMs = DefaultPulseVisualMs;
 
         private bool _showOverlay = true;
+        private bool _showCustomContours = true;
         private bool _editMode = false;
         private Control? _draggedControl;
         private bool _resizing = false;
@@ -56,6 +57,7 @@ namespace MyEmguProject
         private ToolStrip? _topToolStrip;
         private ToolStripDropDownButton? _btnHideMenu;
         private ToolStripMenuItem? _menuToggleOverlay;
+        private ToolStripMenuItem? _menuToggleContours;
         private ToolStripMenuItem? _menuToggleSwitches;
         private ToolStripMenuItem? _menuSwitchesVisible;
         private ToolStripMenuItem? _menuSwitchesHidden;
@@ -235,6 +237,8 @@ namespace MyEmguProject
             _btnHideMenu = new ToolStripDropDownButton("Вид") { ForeColor = Color.White };
             _menuToggleOverlay = new ToolStripMenuItem("Оверлей") { Checked = true };
             _menuToggleOverlay.Click += (s, e) => ToggleOverlayVisibility();
+            _menuToggleContours = new ToolStripMenuItem("Контуры") { Checked = true };
+            _menuToggleContours.Click += (s, e) => ToggleContoursVisibility();
             _menuToggleSwitches = new ToolStripMenuItem("SW/KEY");
             _menuSwitchesVisible = new ToolStripMenuItem("Видно");
             _menuSwitchesVisible.Click += (s, e) => SetSwKeyVisibilityMode(SwKeyVisibilityMode.Visible);
@@ -266,6 +270,7 @@ namespace MyEmguProject
             _menuNumberHex = new ToolStripMenuItem("Шестнадцатеричная");
             _menuNumberHex.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Hexadecimal);
             _btnHideMenu.DropDownItems.Add(_menuToggleOverlay);
+            _btnHideMenu.DropDownItems.Add(_menuToggleContours);
             _btnHideMenu.DropDownItems.Add(_menuToggleSwitches);
             _btnHideMenu.DropDownItems.Add(new ToolStripSeparator());
             _btnHideMenu.DropDownItems.Add(_menuOverlayTransparency);
@@ -878,6 +883,13 @@ namespace MyEmguProject
             UpdateHideMenuTexts();
         }
 
+        private void ToggleContoursVisibility()
+        {
+            _showCustomContours = !_showCustomContours;
+            UpdateHideMenuTexts();
+            _pictureBox.Invalidate();
+        }
+
         private void MenuOverlayTransparency_Click(object? sender, EventArgs e)
         {
             using var dialog = new OverlayTransparencyDialog(_overlayTransparencyAlpha);
@@ -1021,7 +1033,7 @@ namespace MyEmguProject
 
         private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
         {
-            if (!_editOverlayRectsMode || !_showOverlay || e.Button != MouseButtons.Left || _pictureBox.Image == null)
+            if (!_editOverlayRectsMode || e.Button != MouseButtons.Left || _pictureBox.Image == null)
                 return;
 
             if (!TryMapPicturePointToImage(e.Location, out var imagePoint))
@@ -1030,21 +1042,24 @@ namespace MyEmguProject
             const int gripSize = 12;
             _activeCustomOverlayRectIndex = -1;
 
-            for (int i = _customOverlayRects.Count - 1; i >= 0; i--)
+            if (_showCustomContours)
             {
-                if (!_customOverlayRects[i].Bounds.Contains(imagePoint))
-                    continue;
+                for (int i = _customOverlayRects.Count - 1; i >= 0; i--)
+                {
+                    if (!_customOverlayRects[i].Bounds.Contains(imagePoint))
+                        continue;
 
-                _activeOverlayRect = OverlayRectSelection.Custom;
-                _activeCustomOverlayRectIndex = i;
-                break;
+                    _activeOverlayRect = OverlayRectSelection.Custom;
+                    _activeCustomOverlayRectIndex = i;
+                    break;
+                }
             }
 
-            if (_activeOverlayRect == OverlayRectSelection.None && _mainOverlayRect.Contains(imagePoint))
+            if (_showOverlay && _activeOverlayRect == OverlayRectSelection.None && _mainOverlayRect.Contains(imagePoint))
             {
                 _activeOverlayRect = OverlayRectSelection.Main;
             }
-            else if (_activeOverlayRect == OverlayRectSelection.None && _headerOverlayRect.Contains(imagePoint))
+            else if (_showOverlay && _activeOverlayRect == OverlayRectSelection.None && _headerOverlayRect.Contains(imagePoint))
             {
                 _activeOverlayRect = OverlayRectSelection.Header;
             }
@@ -1245,6 +1260,8 @@ namespace MyEmguProject
         {
             if (_menuToggleOverlay != null)
                 _menuToggleOverlay.Checked = _showOverlay;
+            if (_menuToggleContours != null)
+                _menuToggleContours.Checked = _showCustomContours;
 
             if (_menuSwitchesVisible != null)
                 _menuSwitchesVisible.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.Visible;
@@ -1825,7 +1842,7 @@ namespace MyEmguProject
 
                 var bmp = frame.ToBitmap();
 
-                if (_showOverlay)
+                if (_showOverlay || _showCustomContours)
                 {
                     using var g = Graphics.FromImage(bmp);
                     g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -1835,93 +1852,106 @@ namespace MyEmguProject
                     int x = _mainOverlayRect.X;
                     int y = _mainOverlayRect.Y;
 
-                    using (var brush = new SolidBrush(Color.FromArgb(_overlayTransparencyAlpha, 0, 0, 0)))
-                        g.FillRectangle(brush, _mainOverlayRect);
-
-                    using (var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 3))
-                        g.DrawRectangle(pen, _mainOverlayRect);
-
-                    int headerAlpha = Math.Max(40, _overlayTransparencyAlpha - 40);
-                    using (var brush = new SolidBrush(Color.FromArgb(headerAlpha, 0, 0, 0)))
-                        g.FillRectangle(brush, _headerOverlayRect);
-
-                    using (var pen = new Pen(Color.FromArgb(200, 255, 255, 255), 2))
-                        g.DrawRectangle(pen, _headerOverlayRect);
-
-                    using (var titleBrush = new SolidBrush(Color.FromArgb(132, 233, 255)))
-                    using (var titleFont = new Font("Segoe UI", 11, FontStyle.Bold | FontStyle.Italic))
+                    if (_showOverlay)
                     {
-                        string line1 = $"{_selectedBoard} | {_selectedMode}";
-                        string line2 = $"{_selectedCourse}";
-                        g.DrawString(line1, titleFont, titleBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 10);
-                        using var subBrush = new SolidBrush(Color.FromArgb(255, 214, 120));
-                        using var subFont = new Font("Segoe UI", 9, FontStyle.Italic);
-                        g.DrawString(line2, subFont, subBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
-                    }
+                        using (var brush = new SolidBrush(Color.FromArgb(_overlayTransparencyAlpha, 0, 0, 0)))
+                            g.FillRectangle(brush, _mainOverlayRect);
 
-                    for (int i = 0; i < _customOverlayRects.Count; i++)
-                    {
-                        var customRect = _customOverlayRects[i];
-                        using var fillBrush = new SolidBrush(Color.FromArgb(_overlayTransparencyAlpha, customRect.Color));
-                        g.FillRectangle(fillBrush, customRect.Bounds);
+                        using (var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 3))
+                            g.DrawRectangle(pen, _mainOverlayRect);
 
-                        float borderWidth = i == _previewCustomOverlayRectIndex ? 4f : 2f;
-                        Color borderColor = i == _previewCustomOverlayRectIndex
-                            ? Color.FromArgb(255, 255, 240, 120)
-                            : Color.FromArgb(230, customRect.Color);
-                        using var borderPen = new Pen(borderColor, borderWidth);
-                        g.DrawRectangle(borderPen, customRect.Bounds);
-                    }
+                        int headerAlpha = Math.Max(40, _overlayTransparencyAlpha - 40);
+                        using (var brush = new SolidBrush(Color.FromArgb(headerAlpha, 0, 0, 0)))
+                            g.FillRectangle(brush, _headerOverlayRect);
 
-                    float ledPaddingX = Math.Max(8f, _mainOverlayRect.Width * 0.037f);
-                    float ledPaddingTop = Math.Max(5f, _mainOverlayRect.Height * 0.06f);
-                    float ledBandWidth = Math.Max(60f, _mainOverlayRect.Width - ledPaddingX * 2f);
-                    float ledSlotWidth = ledBandWidth / SolenoidCount;
-                    float ledSizeF = Math.Max(8f, Math.Min(ledSlotWidth * 0.34f, _mainOverlayRect.Height * 0.22f));
-                    float ledTop = _mainOverlayRect.Y + ledPaddingTop;
-                    float labelTop = _mainOverlayRect.Y + Math.Max(18f, _mainOverlayRect.Height * 0.46f);
-                    float ledTextWidth = Math.Max(20f, ledSlotWidth);
-                    float ledFontSize = Math.Max(6.5f, Math.Min(10f, _mainOverlayRect.Height * 0.09f));
-                    using var ledFont = new Font("Consolas", ledFontSize, FontStyle.Bold);
+                        using (var pen = new Pen(Color.FromArgb(200, 255, 255, 255), 2))
+                            g.DrawRectangle(pen, _headerOverlayRect);
 
-                    for (int i = 0; i < 10; i++)
-                    {
-                        float slotLeft = _mainOverlayRect.X + ledPaddingX + i * ledSlotWidth;
-                        int ledSize = (int)Math.Round(ledSizeF);
-                        int ledX = (int)Math.Round(slotLeft + (ledSlotWidth - ledSizeF) / 2f);
-                        int ledY = (int)Math.Round(ledTop);
-
-                        bool dir1Active = DateTime.UtcNow < _channelActiveUntil[i * 2];
-                        bool dir2Active = DateTime.UtcNow < _channelActiveUntil[i * 2 + 1];
-                        bool ledIsActive = dir1Active || dir2Active;
-                        Color ledColor = dir1Active ? Color.LimeGreen : dir2Active ? Color.OrangeRed : Color.Gray;
-                        var ledRect = new Rectangle(ledX, ledY, ledSize, ledSize);
-
-                        using (var ledBrush = new SolidBrush(Color.FromArgb(ledIsActive ? 185 : 50, ledColor)))
-                            g.FillRectangle(ledBrush, ledRect);
-
-                        using (var ledPen = new Pen(Color.FromArgb(ledIsActive ? 235 : 110, ledColor), 1.2f))
-                            g.DrawRectangle(ledPen, ledRect);
-
-                        if (ledIsActive)
+                        using (var titleBrush = new SolidBrush(Color.FromArgb(132, 233, 255)))
+                        using (var titleFont = new Font("Segoe UI", 11, FontStyle.Bold | FontStyle.Italic))
                         {
-                            using var glowBrush = new SolidBrush(Color.FromArgb(70, Color.White));
-                            int glowSize = Math.Max(2, ledRect.Width / 3);
-                            g.FillRectangle(glowBrush, ledRect.X + 2, ledRect.Y + 2, glowSize, glowSize);
+                            string line1 = $"{_selectedBoard} | {_selectedMode}";
+                            string line2 = $"{_selectedCourse}";
+                            g.DrawString(line1, titleFont, titleBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 10);
+                            using var subBrush = new SolidBrush(Color.FromArgb(255, 214, 120));
+                            using var subFont = new Font("Segoe UI", 9, FontStyle.Italic);
+                            g.DrawString(line2, subFont, subBrush, _headerOverlayRect.X + 12, _headerOverlayRect.Y + 33);
                         }
 
-                        using (var textBrush = new SolidBrush(Color.White))
-                            g.DrawString($"LED{i}", ledFont, textBrush,
-                                new RectangleF(slotLeft, labelTop, ledTextWidth, _mainOverlayRect.Height - (labelTop - _mainOverlayRect.Y)),
-                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        float ledPaddingX = Math.Max(8f, _mainOverlayRect.Width * 0.037f);
+                        float ledPaddingTop = Math.Max(5f, _mainOverlayRect.Height * 0.06f);
+                        float ledBandWidth = Math.Max(60f, _mainOverlayRect.Width - ledPaddingX * 2f);
+                        float ledSlotWidth = ledBandWidth / SolenoidCount;
+                        float ledSizeF = Math.Max(8f, Math.Min(ledSlotWidth * 0.34f, _mainOverlayRect.Height * 0.22f));
+                        float ledTop = _mainOverlayRect.Y + ledPaddingTop;
+                        float labelTop = _mainOverlayRect.Y + Math.Max(18f, _mainOverlayRect.Height * 0.46f);
+                        float ledTextWidth = Math.Max(20f, ledSlotWidth);
+                        float ledFontSize = Math.Max(6.5f, Math.Min(10f, _mainOverlayRect.Height * 0.09f));
+                        using var ledFont = new Font("Consolas", ledFontSize, FontStyle.Bold);
+
+                        for (int i = 0; i < 10; i++)
+                        {
+                            float slotLeft = _mainOverlayRect.X + ledPaddingX + i * ledSlotWidth;
+                            int ledSize = (int)Math.Round(ledSizeF);
+                            int ledX = (int)Math.Round(slotLeft + (ledSlotWidth - ledSizeF) / 2f);
+                            int ledY = (int)Math.Round(ledTop);
+
+                            bool dir1Active = DateTime.UtcNow < _channelActiveUntil[i * 2];
+                            bool dir2Active = DateTime.UtcNow < _channelActiveUntil[i * 2 + 1];
+                            bool ledIsActive = dir1Active || dir2Active;
+                            Color ledColor = dir1Active ? Color.LimeGreen : dir2Active ? Color.OrangeRed : Color.Gray;
+                            var ledRect = new Rectangle(ledX, ledY, ledSize, ledSize);
+
+                            using (var ledBrush = new SolidBrush(Color.FromArgb(ledIsActive ? 185 : 50, ledColor)))
+                                g.FillRectangle(ledBrush, ledRect);
+
+                            using (var ledPen = new Pen(Color.FromArgb(ledIsActive ? 235 : 110, ledColor), 1.2f))
+                                g.DrawRectangle(ledPen, ledRect);
+
+                            if (ledIsActive)
+                            {
+                                using var glowBrush = new SolidBrush(Color.FromArgb(70, Color.White));
+                                int glowSize = Math.Max(2, ledRect.Width / 3);
+                                g.FillRectangle(glowBrush, ledRect.X + 2, ledRect.Y + 2, glowSize, glowSize);
+                            }
+
+                            using (var textBrush = new SolidBrush(Color.White))
+                                g.DrawString($"LED{i}", ledFont, textBrush,
+                                    new RectangleF(slotLeft, labelTop, ledTextWidth, _mainOverlayRect.Height - (labelTop - _mainOverlayRect.Y)),
+                                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        }
+                    }
+
+                    if (_showCustomContours)
+                    {
+                        for (int i = 0; i < _customOverlayRects.Count; i++)
+                        {
+                            var customRect = _customOverlayRects[i];
+                            using var fillBrush = new SolidBrush(Color.FromArgb(_overlayTransparencyAlpha, customRect.Color));
+                            g.FillRectangle(fillBrush, customRect.Bounds);
+
+                            float borderWidth = i == _previewCustomOverlayRectIndex ? 4f : 2f;
+                            Color borderColor = i == _previewCustomOverlayRectIndex
+                                ? Color.FromArgb(255, 255, 240, 120)
+                                : Color.FromArgb(230, customRect.Color);
+                            using var borderPen = new Pen(borderColor, borderWidth);
+                            g.DrawRectangle(borderPen, customRect.Bounds);
+                        }
                     }
 
                     if (_editOverlayRectsMode)
                     {
-                        DrawOverlayEditHandle(g, _mainOverlayRect);
-                        DrawOverlayEditHandle(g, _headerOverlayRect);
-                        foreach (var customRect in _customOverlayRects)
-                            DrawOverlayEditHandle(g, customRect.Bounds);
+                        if (_showOverlay)
+                        {
+                            DrawOverlayEditHandle(g, _mainOverlayRect);
+                            DrawOverlayEditHandle(g, _headerOverlayRect);
+                        }
+
+                        if (_showCustomContours)
+                        {
+                            foreach (var customRect in _customOverlayRects)
+                                DrawOverlayEditHandle(g, customRect.Bounds);
+                        }
                     }
                 }
 
