@@ -2,7 +2,7 @@
   {
     "Id": "SW0",
     "X": 180,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -10,7 +10,7 @@
   {
     "Id": "SW1",
     "X": 238,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -18,7 +18,7 @@
   {
     "Id": "SW2",
     "X": 296,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -26,7 +26,7 @@
   {
     "Id": "SW3",
     "X": 354,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -34,7 +34,7 @@
   {
     "Id": "SW4",
     "X": 412,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -42,7 +42,7 @@
   {
     "Id": "SW5",
     "X": 470,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -50,15 +50,15 @@
   {
     "Id": "SW6",
     "X": 528,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
   },
   {
     "Id": "SW7",
-    "X": 586,
-    "Y": 520,
+    "X": 585,
+    "Y": 398,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -66,7 +66,7 @@
   {
     "Id": "SW8",
     "X": 644,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
@@ -74,14 +74,14 @@
   {
     "Id": "SW9",
     "X": 702,
-    "Y": 520,
+    "Y": 400,
     "Width": 54,
     "Height": 90,
     "IsSwitch": true
   },
   {
     "Id": "KEY0",
-    "X": 790,
+    "X": 786,
     "Y": 370,
     "Width": 100,
     "Height": 100,
@@ -89,8 +89,8 @@
   },
   {
     "Id": "KEY1",
-    "X": 790,
-    "Y": 490,
+    "X": 786,
+    "Y": 471,
     "Width": 100,
     "Height": 100,
     "IsSwitch": false

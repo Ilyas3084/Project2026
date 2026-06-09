@@ -181,6 +181,7 @@ namespace MyEmguProject
         {
             InitializeComponent();
             SetupUI();
+            Shown += (_, _) => BeginInvoke((Action)RefreshSwitchAnnotations);
             InitializeSerialPort();
             StartReadingThread();
             TryOpenFirstAvailableCamera();
@@ -555,7 +556,7 @@ namespace MyEmguProject
 
         private void CreateOverlayControls()
         {
-            int baseY = 520;
+            int baseY = 400;
             int spacingX = 58;
 
             _lblSwitchNumberView.AutoSize = false;
@@ -622,8 +623,7 @@ namespace MyEmguProject
             _btnKey1.BringToFront();
             LoadSavedSwKeyLayout();
             ApplySwKeyVisibilityMode();
-            PositionSwitchLabels();
-            _lblSwitchNumberView.BringToFront();
+            RefreshSwitchAnnotations();
         }
 
         private void OnSwitchStateChanged(int index)
@@ -1412,6 +1412,17 @@ namespace MyEmguProject
             }
         }
 
+        private void RefreshSwitchAnnotations()
+        {
+            PositionSwitchLabels();
+            PositionSwitchNumberView();
+            UpdateNumberDisplays();
+
+            _lblSwitchNumberView.BringToFront();
+            foreach (var label in _switchLabels)
+                label?.BringToFront();
+        }
+
         private void SetSwKeyEditMode(bool enabled)
         {
             _editMode = enabled;
@@ -1481,7 +1492,7 @@ namespace MyEmguProject
 
         internal List<SwKeyLayoutTarget> GetDefaultSwKeyLayoutTargets()
         {
-            const int baseY = 520;
+            const int baseY = 400;
             const int spacingX = 58;
             var targets = new List<SwKeyLayoutTarget>();
 

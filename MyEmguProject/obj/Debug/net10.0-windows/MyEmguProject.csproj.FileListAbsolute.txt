@@ -138,3 +138,8 @@ C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.deps.json
 C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.runtimeconfig.json
 C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.dll
 C:\tmp\MyEmguProject-contours-toggle\MyEmguProject.pdb
+C:\tmp\MyEmguProject-sw-startup-fix\MyEmguProject.exe
+C:\tmp\MyEmguProject-sw-startup-fix\MyEmguProject.deps.json
+C:\tmp\MyEmguProject-sw-startup-fix\MyEmguProject.runtimeconfig.json
+C:\tmp\MyEmguProject-sw-startup-fix\MyEmguProject.dll
+C:\tmp\MyEmguProject-sw-startup-fix\MyEmguProject.pdb
