@@ -13,14 +13,20 @@ namespace MyEmguProject
         private TextBox txtLog = null!;
         private Button btnClear = null!;
         private Button btnSaveAs = null!;
+        private TableLayoutPanel? _root;
+        private Panel? _headerPanel;
+        private Label? _lblTitle;
+        private Label? _lblSubtitle;
+        private Panel? _logCard;
+        private FlowLayoutPanel? _buttonPanel;
 
-        private static readonly Color BgPrimary = Color.FromArgb(19, 23, 31);
-        private static readonly Color BgSurface = Color.FromArgb(30, 36, 46);
-        private static readonly Color BgElevated = Color.FromArgb(38, 46, 58);
-        private static readonly Color BorderMuted = Color.FromArgb(74, 93, 118);
-        private static readonly Color AccentBlue = Color.FromArgb(59, 130, 246);
-        private static readonly Color TextPrimary = Color.FromArgb(238, 244, 255);
-        private static readonly Color TextSecondary = Color.FromArgb(179, 194, 214);
+        private static Color BgPrimary => AppTheme.Current.BgPrimary;
+        private static Color BgSurface => AppTheme.Current.SurfacePrimary;
+        private static Color BgElevated => AppTheme.IsDark ? Color.FromArgb(38, 46, 58) : Color.FromArgb(252, 255, 254);
+        private static Color BorderMuted => AppTheme.Current.BorderSoft;
+        private static Color AccentBlue => AppTheme.Current.AccentBlue;
+        private static Color TextPrimary => AppTheme.IsDark ? Color.FromArgb(238, 244, 255) : AppTheme.Current.TextPrimary;
+        private static Color TextSecondary => AppTheme.IsDark ? Color.FromArgb(179, 194, 214) : AppTheme.Current.TextSecondary;
 
         public ReturnValuesWindow(SerialPort? serialPort = null)
         {
@@ -50,7 +56,7 @@ namespace MyEmguProject
 
         private void SetupUI()
         {
-            var root = new TableLayoutPanel
+            _root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RowCount = 3,
@@ -59,20 +65,20 @@ namespace MyEmguProject
                 Padding = new Padding(14),
                 Margin = new Padding(0)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
-            Controls.Add(root);
+            _root.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+            _root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            _root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+            Controls.Add(_root);
 
-            var headerPanel = new Panel
+            _headerPanel = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = BgSurface,
                 Padding = new Padding(14, 10, 14, 8)
             };
-            root.Controls.Add(headerPanel, 0, 0);
+            _root.Controls.Add(_headerPanel, 0, 0);
 
-            var lblTitle = new Label
+            _lblTitle = new Label
             {
                 Text = "История переключений",
                 ForeColor = TextPrimary,
@@ -80,9 +86,9 @@ namespace MyEmguProject
                 AutoSize = true,
                 Location = new Point(0, 0)
             };
-            headerPanel.Controls.Add(lblTitle);
+            _headerPanel.Controls.Add(_lblTitle);
 
-            var lblSubtitle = new Label
+            _lblSubtitle = new Label
             {
                 Text = "Временная лента сигналов SW/KEY и ответов STM32",
                 ForeColor = TextSecondary,
@@ -90,16 +96,16 @@ namespace MyEmguProject
                 AutoSize = true,
                 Location = new Point(1, 30)
             };
-            headerPanel.Controls.Add(lblSubtitle);
+            _headerPanel.Controls.Add(_lblSubtitle);
 
-            var logCard = new Panel
+            _logCard = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = BgSurface,
                 Padding = new Padding(2),
                 Margin = new Padding(0, 12, 0, 12)
             };
-            root.Controls.Add(logCard, 0, 1);
+            _root.Controls.Add(_logCard, 0, 1);
 
             txtLog = new TextBox
             {
@@ -113,9 +119,9 @@ namespace MyEmguProject
                 Font = new Font("Consolas", 10f),
                 Padding = new Padding(12)
             };
-            logCard.Controls.Add(txtLog);
+            _logCard.Controls.Add(txtLog);
 
-            var buttonPanel = new FlowLayoutPanel
+            _buttonPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
@@ -123,16 +129,16 @@ namespace MyEmguProject
                 Padding = new Padding(0, 10, 0, 0),
                 BackColor = BgPrimary
             };
-            root.Controls.Add(buttonPanel, 0, 2);
+            _root.Controls.Add(_buttonPanel, 0, 2);
 
             btnClear = new Button
             {
                 Text = "Очистить",
                 Size = new Size(118, 40)
             };
-            StyleActionButton(btnClear, Color.FromArgb(75, 87, 108));
+            StyleActionButton(btnClear, Color.FromArgb(125, 146, 168));
             btnClear.Click += BtnClear_Click;
-            buttonPanel.Controls.Add(btnClear);
+            _buttonPanel.Controls.Add(btnClear);
 
             btnSaveAs = new Button
             {
@@ -142,17 +148,38 @@ namespace MyEmguProject
             };
             StyleActionButton(btnSaveAs, AccentBlue);
             btnSaveAs.Click += BtnSaveAs_Click;
-            buttonPanel.Controls.Add(btnSaveAs);
+            _buttonPanel.Controls.Add(btnSaveAs);
+
+            ApplyTheme();
         }
 
         private static void StyleActionButton(Button button, Color backColor)
         {
             button.BackColor = backColor;
-            button.ForeColor = Color.White;
+            button.ForeColor = AppTheme.IsDark && backColor == Color.White ? Color.Black : Color.White;
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
             button.Font = new Font("Segoe UI Semibold", 10f, FontStyle.Bold);
             button.Cursor = Cursors.Hand;
+        }
+
+        public void ApplyTheme()
+        {
+            BackColor = BgPrimary;
+            if (_root != null) _root.BackColor = BgPrimary;
+            if (_headerPanel != null) _headerPanel.BackColor = BgSurface;
+            if (_logCard != null) _logCard.BackColor = BgSurface;
+            if (_buttonPanel != null) _buttonPanel.BackColor = BgPrimary;
+            if (_lblTitle != null) _lblTitle.ForeColor = TextPrimary;
+            if (_lblSubtitle != null) _lblSubtitle.ForeColor = TextSecondary;
+            if (txtLog != null)
+            {
+                txtLog.BackColor = BgElevated;
+                txtLog.ForeColor = TextPrimary;
+            }
+            if (btnClear != null) StyleActionButton(btnClear, AppTheme.IsDark ? Color.White : Color.FromArgb(125, 146, 168));
+            if (btnSaveAs != null) StyleActionButton(btnSaveAs, AppTheme.IsDark ? Color.White : AccentBlue);
+            Invalidate(true);
         }
 
         private void StartListening()

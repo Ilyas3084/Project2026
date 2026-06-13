@@ -38,6 +38,7 @@ typedef struct
 static void Process_USB_Command(uint8_t* buf, uint32_t len);
 static void Clear_All_Outputs(void);
 static void Pulse_Channel(uint8_t channel);
+static void Set_Channel_State(uint8_t channel, GPIO_PinState state);
 static void Send_Status(void);
 
 /* Карта 22 каналов:
@@ -134,6 +135,34 @@ static void Process_USB_Command(uint8_t* buf, uint32_t len)
     return;
   }
 
+  if (strcmp((char*)buf, "KEY0_ON") == 0)
+  {
+    Set_Channel_State(20, GPIO_PIN_SET);
+    CDC_Transmit_FS((uint8_t*)"KEY0 ON\r\n", 9);
+    return;
+  }
+
+  if (strcmp((char*)buf, "KEY0_OFF") == 0)
+  {
+    Set_Channel_State(20, GPIO_PIN_RESET);
+    CDC_Transmit_FS((uint8_t*)"KEY0 OFF\r\n", 10);
+    return;
+  }
+
+  if (strcmp((char*)buf, "KEY1_ON") == 0)
+  {
+    Set_Channel_State(21, GPIO_PIN_SET);
+    CDC_Transmit_FS((uint8_t*)"KEY1 ON\r\n", 9);
+    return;
+  }
+
+  if (strcmp((char*)buf, "KEY1_OFF") == 0)
+  {
+    Set_Channel_State(21, GPIO_PIN_RESET);
+    CDC_Transmit_FS((uint8_t*)"KEY1 OFF\r\n", 10);
+    return;
+  }
+
   value = strtol((char*)buf, &endptr, 10);
   if (endptr != (char*)buf && *endptr == '\0')
   {
@@ -180,6 +209,14 @@ static void Pulse_Channel(uint8_t channel)
   HAL_GPIO_WritePin(g_channel_map[channel].port, g_channel_map[channel].pin, GPIO_PIN_SET);
   HAL_Delay(PULSE_MS);
   HAL_GPIO_WritePin(g_channel_map[channel].port, g_channel_map[channel].pin, GPIO_PIN_RESET);
+}
+
+static void Set_Channel_State(uint8_t channel, GPIO_PinState state)
+{
+  if (channel >= TOTAL_CHANNELS)
+    return;
+
+  HAL_GPIO_WritePin(g_channel_map[channel].port, g_channel_map[channel].pin, state);
 }
 
 static void Send_Status(void)

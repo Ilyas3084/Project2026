@@ -28,6 +28,7 @@ namespace MyEmguProject
         private readonly Label _lblSwitchNumberView = new();
 
         private readonly DateTime[] _channelActiveUntil = new DateTime[TotalChannels];
+        private readonly bool[] _keyPressedStates = new bool[2];
 
         private RoundButton? _btnKey0;
         private RoundButton? _btnKey1;
@@ -59,6 +60,7 @@ namespace MyEmguProject
         private ToolStripMenuItem? _menuToggleOverlay;
         private ToolStripMenuItem? _menuToggleContours;
         private ToolStripMenuItem? _menuToggleSwitches;
+        private ToolStripMenuItem? _menuToggleTheme;
         private ToolStripMenuItem? _menuSwitchesVisible;
         private ToolStripMenuItem? _menuSwitchesHidden;
         private ToolStripMenuItem? _menuSwitchesHoverReveal;
@@ -103,6 +105,16 @@ namespace MyEmguProject
         private ToolStripMenuItem? _menuCourseArchitecture;
         private ToolStripMenuItem? _menuCourseEmbedded;
         private ToolStripMenuItem? _menuCourseFPGABasics;
+        private TableLayoutPanel? _rootLayout;
+        private ThemedSurfacePanel? _toolbarHost;
+        private ThemedSurfacePanel? _selectionHost;
+        private ThemedSurfacePanel? _controlHost;
+        private Panel? _videoHost;
+        private TableLayoutPanel? _mainLayout;
+        private Label? _lblControlTitle;
+        private Label? _lblControlSubtitle;
+        private Label? _lblSessionPill;
+        private Label? _lblToolsPill;
 
         private string _selectedMode = "Учебный";
         private string _selectedBoard = "DE10-Lite";
@@ -126,22 +138,24 @@ namespace MyEmguProject
         private SwKeyVisibilityMode _swKeyVisibilityMode = SwKeyVisibilityMode.Visible;
         private string? _hoveredSwKeyId;
 
-        private static readonly Color BgPrimary = Color.FromArgb(8, 28, 36);
-        private static readonly Color BgCanvas = Color.FromArgb(11, 36, 47);
-        private static readonly Color BgPanel = Color.FromArgb(15, 41, 54);
-        private static readonly Color SurfacePrimary = Color.FromArgb(24, 53, 67);
-        private static readonly Color SurfaceSecondary = Color.FromArgb(20, 47, 60);
-        private static readonly Color SurfaceTertiary = Color.FromArgb(16, 39, 50);
-        private static readonly Color BorderSoft = Color.FromArgb(72, 117, 136);
-        private static readonly Color BorderStrong = Color.FromArgb(92, 170, 196);
-        private static readonly Color AccentCyan = Color.FromArgb(90, 215, 255);
-        private static readonly Color AccentBlue = Color.FromArgb(67, 166, 230);
-        private static readonly Color AccentMuted = Color.FromArgb(126, 194, 215);
-        private static readonly Color AccentPill = Color.FromArgb(38, 77, 94);
-        private static readonly Color KeyIdleColor = Color.FromArgb(33, 110, 210);
-        private static readonly Color KeyIdleBorderColor = Color.FromArgb(125, 190, 255);
-        private static readonly Color KeyActiveColor = Color.FromArgb(0, 150, 70);
-        private static readonly Color KeyActiveBorderColor = Color.FromArgb(110, 255, 170);
+        private static Color BgPrimary => AppTheme.Current.BgPrimary;
+        private static Color BgCanvas => AppTheme.Current.BgCanvas;
+        private static Color BgPanel => AppTheme.Current.BgPanel;
+        private static Color SurfacePrimary => AppTheme.Current.SurfacePrimary;
+        private static Color SurfaceSecondary => AppTheme.Current.SurfaceSecondary;
+        private static Color SurfaceTertiary => AppTheme.Current.SurfaceTertiary;
+        private static Color BorderSoft => AppTheme.Current.BorderSoft;
+        private static Color BorderStrong => AppTheme.Current.BorderStrong;
+        private static Color AccentCyan => AppTheme.Current.AccentCyan;
+        private static Color AccentBlue => AppTheme.Current.AccentBlue;
+        private static Color AccentMuted => AppTheme.Current.AccentMuted;
+        private static Color AccentPill => AppTheme.Current.AccentPill;
+        private static Color TextPrimary => AppTheme.Current.TextPrimary;
+        private static Color TextSecondary => AppTheme.Current.TextSecondary;
+        private static Color KeyIdleColor => AppTheme.Current.KeyIdleColor;
+        private static Color KeyIdleBorderColor => AppTheme.Current.KeyIdleBorderColor;
+        private static Color KeyActiveColor => AppTheme.Current.KeyActiveColor;
+        private static Color KeyActiveBorderColor => AppTheme.Current.KeyActiveBorderColor;
         private static readonly string[] PreferredComPorts = { "COM9", "COM10", "COM11", "COM12", "COM8", "COM7", "COM6", "COM5" };
         private static readonly string SwKeyLayoutFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "swkey-layout.json");
 
@@ -209,7 +223,7 @@ namespace MyEmguProject
 
         private void SetupUI()
         {
-            var rootLayout = new TableLayoutPanel
+            _rootLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
@@ -218,28 +232,30 @@ namespace MyEmguProject
                 Margin = new Padding(0),
                 Padding = new Padding(18, 14, 18, 18)
             };
-            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82f));
-            rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96f));
-            rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-            Controls.Add(rootLayout);
+            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76f));
+            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 88f));
+            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            Controls.Add(_rootLayout);
 
             _topToolStrip = new ToolStrip
             {
                 Dock = DockStyle.Fill,
                 GripStyle = ToolStripGripStyle.Hidden,
-                BackColor = SurfacePrimary,
-                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                ForeColor = TextPrimary,
                 Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 Padding = new Padding(12, 10, 12, 10),
                 RenderMode = ToolStripRenderMode.Professional,
                 Renderer = new TopMenuRenderer()
             };
 
-            _btnHideMenu = new ToolStripDropDownButton("Вид") { ForeColor = Color.White };
+            _btnHideMenu = new ToolStripDropDownButton("Вид") { ForeColor = TextPrimary };
             _menuToggleOverlay = new ToolStripMenuItem("Оверлей") { Checked = true };
             _menuToggleOverlay.Click += (s, e) => ToggleOverlayVisibility();
             _menuToggleContours = new ToolStripMenuItem("Контуры") { Checked = true };
             _menuToggleContours.Click += (s, e) => ToggleContoursVisibility();
+            _menuToggleTheme = new ToolStripMenuItem("Тёмная тема") { Checked = AppTheme.IsDark };
+            _menuToggleTheme.Click += (s, e) => ToggleTheme();
             _menuToggleSwitches = new ToolStripMenuItem("SW/KEY");
             _menuSwitchesVisible = new ToolStripMenuItem("Видно");
             _menuSwitchesVisible.Click += (s, e) => SetSwKeyVisibilityMode(SwKeyVisibilityMode.Visible);
@@ -272,6 +288,7 @@ namespace MyEmguProject
             _menuNumberHex.Click += (s, e) => SelectNumberPresentation(NumberPresentation.Hexadecimal);
             _btnHideMenu.DropDownItems.Add(_menuToggleOverlay);
             _btnHideMenu.DropDownItems.Add(_menuToggleContours);
+            _btnHideMenu.DropDownItems.Add(_menuToggleTheme);
             _btnHideMenu.DropDownItems.Add(_menuToggleSwitches);
             _btnHideMenu.DropDownItems.Add(new ToolStripSeparator());
             _btnHideMenu.DropDownItems.Add(_menuOverlayTransparency);
@@ -284,7 +301,7 @@ namespace MyEmguProject
             });
             _btnHideMenu.DropDownItems.Add(_menuNumberPresentation);
 
-            _btnModeMenu = new ToolStripDropDownButton("Режим") { ForeColor = Color.White };
+            _btnModeMenu = new ToolStripDropDownButton("Режим") { ForeColor = TextPrimary };
             _menuModeTraining = new ToolStripMenuItem("Учебный");
             _menuModeTraining.Click += (s, e) => SelectMode("Учебный");
             _menuModeDebug = new ToolStripMenuItem("Отладка");
@@ -293,7 +310,7 @@ namespace MyEmguProject
             _menuModeTest.Click += (s, e) => SelectMode("Тест");
             _btnModeMenu.DropDownItems.AddRange(new ToolStripItem[] { _menuModeTraining, _menuModeDebug, _menuModeTest });
 
-            _btnBoardMenu = new ToolStripDropDownButton("Плата") { ForeColor = Color.White };
+            _btnBoardMenu = new ToolStripDropDownButton("Плата") { ForeColor = TextPrimary };
             _menuBoardDE10Lite = new ToolStripMenuItem("DE10-Lite");
             _menuBoardDE10Lite.Click += (s, e) => SelectBoard("DE10-Lite");
             _menuBoardDE0CV = new ToolStripMenuItem("DE0-CV");
@@ -311,7 +328,7 @@ namespace MyEmguProject
                 _menuBoardDE10Lite, _menuBoardDE0CV, _menuBoardDE0Nano, _menuBoardDE1SoC, _menuBoardDE10Standard, _menuBoardDE10Nano
             });
 
-            _btnCourseMenu = new ToolStripDropDownButton("Курс") { ForeColor = Color.White };
+            _btnCourseMenu = new ToolStripDropDownButton("Курс") { ForeColor = TextPrimary };
             _menuCourseDigitalLogic = new ToolStripMenuItem("Цифровая логика");
             _menuCourseDigitalLogic.Click += (s, e) => SelectCourse("Цифровая логика");
             _menuCourseArchitecture = new ToolStripMenuItem("Архитектура ЭВМ");
@@ -325,29 +342,29 @@ namespace MyEmguProject
                 _menuCourseDigitalLogic, _menuCourseArchitecture, _menuCourseEmbedded, _menuCourseFPGABasics
             });
 
-            _btnToolsMenu = new ToolStripDropDownButton("Инструменты") { ForeColor = Color.White };
+            _btnToolsMenu = new ToolStripDropDownButton("Инструменты") { ForeColor = TextPrimary };
             _menuPulseDuration = new ToolStripMenuItem("Время сигнала...");
             _menuPulseDuration.Click += MenuPulseDuration_Click;
             _btnToolsMenu.DropDownItems.Add(_menuPulseDuration);
 
-            _btnEditOverlayMenu = new ToolStripDropDownButton("Редактировать SW/KEY") { ForeColor = Color.White };
+            _btnEditOverlayMenu = new ToolStripDropDownButton("Редактировать SW/KEY") { ForeColor = TextPrimary };
             _menuEditOverlayEnabled = new ToolStripMenuItem("Активно");
             _menuEditOverlayEnabled.Click += BtnEditOverlay_Click;
             _btnEditOverlayMenu.DropDownItems.Add(_menuEditOverlayEnabled);
 
-            _toolBtnHistory = new ToolStripButton("Журнал") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = Color.White };
+            _toolBtnHistory = new ToolStripButton("Журнал") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = TextPrimary };
             _toolBtnHistory.Click += BtnBack_Click;
 
-            var lblCamera = new ToolStripLabel("Камера:") { ForeColor = Color.White };
+            var lblCamera = new ToolStripLabel("Камера:") { ForeColor = TextPrimary };
 
-            var lblComPort = new ToolStripLabel("COM:") { ForeColor = Color.White };
+            var lblComPort = new ToolStripLabel("COM:") { ForeColor = TextPrimary };
 
             _cmbCamera = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = new Font("Segoe UI", 10),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.ComboBoxBackground,
+                ForeColor = AppTheme.ComboBoxText,
                 Width = 220
             };
 
@@ -379,8 +396,8 @@ namespace MyEmguProject
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = new Font("Segoe UI", 10),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.ComboBoxBackground,
+                ForeColor = AppTheme.ComboBoxText,
                 Width = 130
             };
             _cmbComPort.SelectedIndexChanged += CmbComPort_SelectedIndexChanged;
@@ -407,51 +424,45 @@ namespace MyEmguProject
             _topToolStrip.Items.Add(lblComPort);
             _topToolStrip.Items.Add(comPortHost);
 
-            var toolbarHost = new ThemedSurfacePanel
+            _toolbarHost = new ThemedSurfacePanel
             {
                 Dock = DockStyle.Fill,
                 Margin = new Padding(0, 0, 0, 10),
-                Padding = new Padding(10, 8, 10, 8),
+                Padding = new Padding(12, 10, 12, 10),
                 SurfaceColor = SurfacePrimary,
-                BorderColor = Color.FromArgb(24, BorderSoft),
-                GlowColor = Color.FromArgb(26, AccentBlue),
-                CornerRadius = 24
+                BorderColor = BorderSoft,
+                GlowColor = AppTheme.IsDark ? Color.FromArgb(26, AccentBlue) : Color.FromArgb(14, 124, 191, 181),
+                CornerRadius = 28
             };
-            toolbarHost.Controls.Add(_topToolStrip);
-            rootLayout.Controls.Add(toolbarHost, 0, 0);
+            _toolbarHost.Controls.Add(_topToolStrip);
+            _rootLayout.Controls.Add(_toolbarHost, 0, 0);
 
-            var selectionHost = new ThemedSurfacePanel
+            _selectionHost = new ThemedSurfacePanel
             {
                 Dock = DockStyle.Fill,
                 Margin = new Padding(0, 0, 0, 14),
                 Padding = new Padding(14, 10, 14, 14),
                 SurfaceColor = SurfaceSecondary,
                 BorderColor = BorderSoft,
-                GlowColor = Color.FromArgb(20, AccentCyan),
-                CornerRadius = 24
+                GlowColor = AppTheme.IsDark ? Color.FromArgb(20, AccentCyan) : Color.FromArgb(12, 126, 191, 182),
+                CornerRadius = 28
             };
 
-            var selectionStrip = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                AutoSize = false,
-                BackColor = SurfaceSecondary,
-                Padding = new Padding(6, 2, 6, 6),
-                Margin = new Padding(0)
-            };
+            _lblSessionPill = CreateSectionPill("СОСТОЯНИЕ СЕССИИ");
+            _lblSessionPill.Location = new Point(18, 18);
+            _selectionHost.Controls.Add(_lblSessionPill);
 
-            var selectionIntro = CreateSectionPill("СОСТОЯНИЕ СЕССИИ");
-            selectionIntro.Margin = new Padding(4, 10, 14, 6);
-            selectionStrip.Controls.Add(selectionIntro);
-            _lblModeValue = CreateSelectionCard(selectionStrip, "Режим");
-            _lblBoardValue = CreateSelectionCard(selectionStrip, "Плата");
-            _lblCourseValue = CreateSelectionCard(selectionStrip, "Курс");
-            selectionHost.Controls.Add(selectionStrip);
-            rootLayout.Controls.Add(selectionHost, 0, 1);
+            _lblModeValue = CreateSelectionCard(_selectionHost, "Режим");
+            _lblModeValue.Parent!.Location = new Point(200, 16);
 
-            var mainLayout = new TableLayoutPanel
+            _lblBoardValue = CreateSelectionCard(_selectionHost, "Плата");
+            _lblBoardValue.Parent!.Location = new Point(452, 16);
+
+            _lblCourseValue = CreateSelectionCard(_selectionHost, "Курс");
+            _lblCourseValue.Parent!.Location = new Point(704, 16);
+            _rootLayout.Controls.Add(_selectionHost, 0, 1);
+
+            _mainLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
@@ -460,28 +471,28 @@ namespace MyEmguProject
                 Margin = new Padding(0),
                 Padding = new Padding(0)
             };
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 73f));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 27f));
-            rootLayout.Controls.Add(mainLayout, 0, 2);
+            _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 74f));
+            _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 26f));
+            _rootLayout.Controls.Add(_mainLayout, 0, 2);
 
-            var videoHost = new Panel
+            _videoHost = new Panel
             {
                 Dock = DockStyle.Fill,
-                Margin = new Padding(0, 0, 10, 0),
+                Margin = new Padding(0, 0, 8, 0),
                 Padding = new Padding(0),
                 BackColor = BgCanvas
             };
-            mainLayout.Controls.Add(videoHost, 0, 0);
+            _mainLayout.Controls.Add(_videoHost, 0, 0);
 
             _videoPanel.Dock = DockStyle.Fill;
-            _videoPanel.BackColor = Color.Black;
+            _videoPanel.BackColor = Color.FromArgb(226, 242, 240);
             _videoPanel.Margin = new Padding(0);
             _videoPanel.Padding = new Padding(0);
-            videoHost.Controls.Add(_videoPanel);
+            _videoHost.Controls.Add(_videoPanel);
 
             _pictureBox.Dock = DockStyle.Fill;
             _pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
-            _pictureBox.BackColor = Color.FromArgb(7, 19, 24);
+            _pictureBox.BackColor = Color.FromArgb(231, 245, 243);
             _pictureBox.Paint += PictureBox_Paint;
             _pictureBox.MouseDown += PictureBox_MouseDown;
             _pictureBox.MouseMove += PictureBox_MouseMove;
@@ -491,66 +502,62 @@ namespace MyEmguProject
 
             CreateOverlayControls();
 
-            var controlHost = new ThemedSurfacePanel
+            _controlHost = new ThemedSurfacePanel
             {
                 Dock = DockStyle.Fill,
                 Margin = new Padding(0),
                 Padding = new Padding(16, 56, 16, 18),
-                SurfaceColor = SurfaceTertiary,
+                SurfaceColor = SurfacePrimary,
                 BorderColor = BorderSoft,
-                GlowColor = Color.FromArgb(18, AccentCyan),
+                GlowColor = AppTheme.IsDark ? Color.FromArgb(18, AccentCyan) : Color.FromArgb(12, 126, 191, 182),
                 CornerRadius = 28
             };
-            mainLayout.Controls.Add(controlHost, 1, 0);
+            _mainLayout.Controls.Add(_controlHost, 1, 0);
 
-            var controlPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = SurfaceTertiary,
-                Padding = new Padding(0)
-            };
-            controlHost.Controls.Add(controlPanel);
-            var controlBadge = CreateSectionPill("ИНСТРУМЕНТЫ И СТАТУС");
-            controlBadge.Location = new Point(16, 14);
-            controlHost.Controls.Add(controlBadge);
-            controlBadge.BringToFront();
+            _lblToolsPill = CreateSectionPill("ИНСТРУМЕНТЫ И СТАТУС");
+            _lblToolsPill.Location = new Point(16, 14);
+            _controlHost.Controls.Add(_lblToolsPill);
+            _lblToolsPill.BringToFront();
 
-            int y = 0;
-            controlPanel.Controls.Add(new Label
+            int y = 56;
+            _lblControlTitle = new Label
             {
                 Text = "Лабораторный пульт",
                 Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = TextPrimary,
                 AutoSize = true,
-                Location = new Point(0, y)
-            });
+                Location = new Point(16, y)
+            };
+            _controlHost.Controls.Add(_lblControlTitle);
             y += 38;
 
-            controlPanel.Controls.Add(new Label
+            _lblControlSubtitle = new Label
             {
                 Text = "Управление переключателями, клавишами и визуальными контурами в едином окне.",
                 Font = new Font("Segoe UI", 10.5f),
-                ForeColor = AccentMuted,
-                Size = new Size(310, 44),
-                Location = new Point(0, y)
-            });
+                ForeColor = TextSecondary,
+                Size = new Size(360, 44),
+                Location = new Point(16, y)
+            };
+            _controlHost.Controls.Add(_lblControlSubtitle);
             y += 64;
 
-            CreateInfoBlock(controlPanel, _lblStatus, "КАНАЛЫ И СВЯЗЬ", ref y, 108);
+            CreateInfoBlock(_controlHost, _lblStatus, "КАНАЛЫ И СВЯЗЬ", ref y, 108);
             _lblStatus.Font = new Font("Consolas", 10f, FontStyle.Bold);
             _lblStatus.TextAlign = ContentAlignment.MiddleLeft;
             _lblStatus.Text = "Подключение...";
 
-            CreateInfoBlock(controlPanel, _lblNumbersSummary, "ТЕКУЩЕЕ ЗНАЧЕНИЕ", ref y, 112);
+            CreateInfoBlock(_controlHost, _lblNumbersSummary, "ТЕКУЩЕЕ ЗНАЧЕНИЕ", ref y, 112);
             _lblNumbersSummary.Font = new Font("Consolas", 9f, FontStyle.Bold);
 
-            CreateInfoBlock(controlPanel, _lblHoverInfo, "ПОД КУРСОРОМ", ref y, 96);
+            CreateInfoBlock(_controlHost, _lblHoverInfo, "ПОД КУРСОРОМ", ref y, 96);
             _lblHoverInfo.Font = new Font("Consolas", 9f, FontStyle.Bold);
             _lblHoverInfo.Text = "Элемент:\n-";
 
             UpdateHideMenuTexts();
             UpdateSelectionMenus();
             UpdateNumberDisplays();
+            ApplyTheme();
             UpdateStatusText("Готово");
         }
 
@@ -561,8 +568,8 @@ namespace MyEmguProject
 
             _lblSwitchNumberView.AutoSize = false;
             _lblSwitchNumberView.Size = new Size(240, 28);
-            _lblSwitchNumberView.BackColor = Color.FromArgb(48, 24, 24, 28);
-            _lblSwitchNumberView.ForeColor = Color.WhiteSmoke;
+            _lblSwitchNumberView.BackColor = AppTheme.SwitchNumberBackground;
+            _lblSwitchNumberView.ForeColor = TextPrimary;
             _lblSwitchNumberView.Font = new Font("Consolas", 10f, FontStyle.Bold);
             _lblSwitchNumberView.TextAlign = ContentAlignment.MiddleCenter;
             _pictureBox.Controls.Add(_lblSwitchNumberView);
@@ -584,8 +591,8 @@ namespace MyEmguProject
                 {
                     AutoSize = false,
                     Size = new Size(54, 18),
-                    BackColor = Color.FromArgb(48, 20, 20, 24),
-                    ForeColor = Color.WhiteSmoke,
+                    BackColor = AppTheme.SwitchLabelBackground,
+                    ForeColor = TextPrimary,
                     Font = new Font("Consolas", 8f, FontStyle.Bold),
                     TextAlign = ContentAlignment.MiddleCenter,
                     Text = $"SW{i}"
@@ -605,7 +612,21 @@ namespace MyEmguProject
                 BackColor = KeyIdleColor,
                 BorderColor = KeyIdleBorderColor
             };
-            _btnKey0.Click += (s, e) => TriggerKeyChannel(20, _btnKey0, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
+            _btnKey0.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                    BeginKeyHold(0, _btnKey0);
+            };
+            _btnKey0.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                    EndKeyHold(0, _btnKey0);
+            };
+            _btnKey0.MouseCaptureChanged += (s, e) =>
+            {
+                if (_keyPressedStates[0])
+                    EndKeyHold(0, _btnKey0);
+            };
             AttachSwKeyHoverHandlers(_btnKey0, "KEY0");
             _pictureBox.Controls.Add(_btnKey0);
             _btnKey0.BringToFront();
@@ -617,7 +638,21 @@ namespace MyEmguProject
                 BackColor = KeyIdleColor,
                 BorderColor = KeyIdleBorderColor
             };
-            _btnKey1.Click += (s, e) => TriggerKeyChannel(21, _btnKey1, KeyIdleColor, KeyIdleBorderColor, KeyActiveColor, KeyActiveBorderColor);
+            _btnKey1.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                    BeginKeyHold(1, _btnKey1);
+            };
+            _btnKey1.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                    EndKeyHold(1, _btnKey1);
+            };
+            _btnKey1.MouseCaptureChanged += (s, e) =>
+            {
+                if (_keyPressedStates[1])
+                    EndKeyHold(1, _btnKey1);
+            };
             AttachSwKeyHoverHandlers(_btnKey1, "KEY1");
             _pictureBox.Controls.Add(_btnKey1);
             _btnKey1.BringToFront();
@@ -634,30 +669,64 @@ namespace MyEmguProject
             UpdateNumberDisplays();
         }
 
-        private void TriggerKeyChannel(int channel, RoundButton? button, Color idleColor, Color idleBorderColor, Color activeColor, Color activeBorderColor)
+        private void BeginKeyHold(int keyIndex, RoundButton? button)
         {
-            if (button != null)
+            if (button == null || _keyPressedStates[keyIndex])
+                return;
+
+            _keyPressedStates[keyIndex] = true;
+            button.Capture = true;
+            button.BackColor = KeyActiveColor;
+            button.BorderColor = KeyActiveBorderColor;
+            button.Invalidate();
+
+            int channel = 20 + keyIndex;
+            SendKeyStateCommand(channel, true);
+
+            string keyName = keyIndex == 0 ? "KEY0" : "KEY1";
+            if (_logWindow != null && !_logWindow.IsDisposed)
+                _logWindow.AddLog($"{keyName} → ON");
+            else
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {keyName} → ON");
+
+            UpdateStatusText($"{keyName}: удержание активно");
+        }
+
+        private void EndKeyHold(int keyIndex, RoundButton? button)
+        {
+            if (!_keyPressedStates[keyIndex])
+                return;
+
+            _keyPressedStates[keyIndex] = false;
+
+            if (button != null && !button.IsDisposed)
             {
-                button.BackColor = activeColor;
-                button.BorderColor = activeBorderColor;
+                button.Capture = false;
+                button.BackColor = KeyIdleColor;
+                button.BorderColor = KeyIdleBorderColor;
                 button.Invalidate();
             }
 
-            TriggerChannel(channel);
+            int channel = 20 + keyIndex;
+            SendKeyStateCommand(channel, false);
 
-            var restoreTimer = new System.Windows.Forms.Timer { Interval = _pulseVisualMs };
-            restoreTimer.Tick += (s, e) =>
-            {
-                restoreTimer.Stop();
-                restoreTimer.Dispose();
-                if (button != null && !button.IsDisposed)
-                {
-                    button.BackColor = idleColor;
-                    button.BorderColor = idleBorderColor;
-                    button.Invalidate();
-                }
-            };
-            restoreTimer.Start();
+            string keyName = keyIndex == 0 ? "KEY0" : "KEY1";
+            if (_logWindow != null && !_logWindow.IsDisposed)
+                _logWindow.AddLog($"{keyName} → OFF");
+            else
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {keyName} → OFF");
+
+            UpdateStatusText($"{keyName}: удержание снято");
+        }
+
+        private void SendKeyStateCommand(int channel, bool isPressed)
+        {
+            if (channel < 20 || channel > 21)
+                return;
+
+            _channelActiveUntil[channel] = isPressed ? DateTime.MaxValue : DateTime.MinValue;
+            string keyName = channel == 20 ? "KEY0" : "KEY1";
+            SendCommand($"{keyName}_{(isPressed ? "ON" : "OFF")}\n");
         }
 
         private void TriggerChannel(int channel)
@@ -1175,21 +1244,21 @@ namespace MyEmguProject
         {
             var card = new ThemedSurfacePanel
             {
-                Size = new Size(236, 44),
-                SurfaceColor = Color.FromArgb(31, 63, 77),
-                BorderColor = BorderSoft,
-                GlowColor = Color.FromArgb(12, AccentCyan),
-                CornerRadius = 18,
+                Size = new Size(236, 48),
+                SurfaceColor = Color.White,
+                BorderColor = Color.FromArgb(194, 221, 216),
+                GlowColor = Color.FromArgb(8, 121, 189, 180),
+                CornerRadius = 22,
                 Margin = new Padding(0, 4, 12, 4),
-                Padding = new Padding(12, 6, 12, 6)
+                Padding = new Padding(14, 7, 14, 7)
             };
 
             var titleLabel = new Label
             {
                 Text = title,
                 Dock = DockStyle.Left,
-                Width = 72,
-                ForeColor = AccentMuted,
+                Width = 78,
+                ForeColor = TextSecondary,
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -1197,7 +1266,7 @@ namespace MyEmguProject
             var valueLabel = new Label
             {
                 Dock = DockStyle.Fill,
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = TextPrimary,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -1214,7 +1283,7 @@ namespace MyEmguProject
             {
                 AutoSize = true,
                 Text = text,
-                ForeColor = AccentMuted,
+                ForeColor = TextSecondary,
                 BackColor = AccentPill,
                 Font = new Font("Segoe UI", 8.25f, FontStyle.Bold),
                 Padding = new Padding(12, 7, 12, 7),
@@ -1226,13 +1295,14 @@ namespace MyEmguProject
         {
             var block = new ThemedSurfacePanel
             {
-                Location = new Point(0, y),
-                Size = new Size(320, height),
-                SurfaceColor = Color.FromArgb(25, 53, 67),
-                BorderColor = BorderSoft,
-                GlowColor = Color.FromArgb(10, AccentBlue),
-                CornerRadius = 22,
-                Padding = new Padding(14, 14, 14, 14)
+                Location = new Point(16, y),
+                Size = new Size(Math.Max(220, parent.ClientSize.Width - 32), height),
+                SurfaceColor = Color.White,
+                BorderColor = Color.FromArgb(194, 221, 216),
+                GlowColor = Color.FromArgb(8, 121, 189, 180),
+                CornerRadius = 24,
+                Padding = new Padding(16, 15, 16, 15),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             var titleLabel = new Label
@@ -1240,14 +1310,14 @@ namespace MyEmguProject
                 Text = title,
                 Dock = DockStyle.Top,
                 Height = 22,
-                ForeColor = AccentMuted,
+                ForeColor = TextSecondary,
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
             label.Dock = DockStyle.Fill;
             label.BackColor = Color.Transparent;
-            label.ForeColor = Color.WhiteSmoke;
+            label.ForeColor = TextPrimary;
             label.Padding = new Padding(0, 6, 0, 0);
 
             block.Controls.Add(label);
@@ -1262,6 +1332,8 @@ namespace MyEmguProject
                 _menuToggleOverlay.Checked = _showOverlay;
             if (_menuToggleContours != null)
                 _menuToggleContours.Checked = _showCustomContours;
+            if (_menuToggleTheme != null)
+                _menuToggleTheme.Checked = AppTheme.IsDark;
 
             if (_menuSwitchesVisible != null)
                 _menuSwitchesVisible.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.Visible;
@@ -1273,6 +1345,151 @@ namespace MyEmguProject
                 _menuRemoveOverlayRect.Enabled = _customOverlayRects.Count > 0;
 
             UpdateNumberDisplays();
+        }
+
+        private void ToggleTheme()
+        {
+            AppTheme.SetMode(AppTheme.IsDark ? AppThemeMode.Light : AppThemeMode.Dark);
+            ApplyTheme();
+            if (_logWindow != null && !_logWindow.IsDisposed)
+                _logWindow.ApplyTheme();
+            UpdateStatusText(AppTheme.IsDark ? "Темная тема активна" : "Светлая тема активна");
+        }
+
+        private void ApplyTheme()
+        {
+            BackColor = BgPrimary;
+            if (_rootLayout != null)
+                _rootLayout.BackColor = BgPrimary;
+            if (_mainLayout != null)
+                _mainLayout.BackColor = BgPrimary;
+
+            if (_topToolStrip != null)
+            {
+                _topToolStrip.ForeColor = TextPrimary;
+                _topToolStrip.Invalidate();
+            }
+
+            if (_menuToggleTheme != null)
+                _menuToggleTheme.Checked = AppTheme.IsDark;
+
+            foreach (var item in GetToolStripItems())
+                item.ForeColor = TextPrimary;
+
+            if (_cmbCamera != null)
+            {
+                _cmbCamera.BackColor = AppTheme.ComboBoxBackground;
+                _cmbCamera.ForeColor = AppTheme.ComboBoxText;
+            }
+
+            if (_cmbComPort != null)
+            {
+                _cmbComPort.BackColor = AppTheme.ComboBoxBackground;
+                _cmbComPort.ForeColor = AppTheme.ComboBoxText;
+            }
+
+            ApplyHostTheme(_toolbarHost, SurfacePrimary, AppTheme.IsDark ? Color.FromArgb(26, AccentBlue) : Color.FromArgb(14, 124, 191, 181));
+            ApplyHostTheme(_selectionHost, SurfaceSecondary, AppTheme.IsDark ? Color.FromArgb(20, AccentCyan) : Color.FromArgb(12, 126, 191, 182));
+            ApplyHostTheme(_controlHost, SurfacePrimary, AppTheme.IsDark ? Color.FromArgb(18, AccentCyan) : Color.FromArgb(12, 126, 191, 182));
+
+            if (_videoHost != null)
+                _videoHost.BackColor = BgCanvas;
+
+            _videoPanel.BackColor = AppTheme.VideoPanelBackground;
+            _pictureBox.BackColor = AppTheme.PictureBoxBackground;
+            _lblSwitchNumberView.BackColor = AppTheme.SwitchNumberBackground;
+            _lblSwitchNumberView.ForeColor = TextPrimary;
+
+            foreach (var label in _switchLabels)
+            {
+                label.BackColor = AppTheme.SwitchLabelBackground;
+                label.ForeColor = TextPrimary;
+            }
+
+            if (_lblSessionPill != null)
+            {
+                _lblSessionPill.BackColor = AccentPill;
+                _lblSessionPill.ForeColor = TextSecondary;
+            }
+
+            if (_lblToolsPill != null)
+            {
+                _lblToolsPill.BackColor = AccentPill;
+                _lblToolsPill.ForeColor = TextSecondary;
+            }
+
+            if (_lblControlTitle != null)
+                _lblControlTitle.ForeColor = TextPrimary;
+            if (_lblControlSubtitle != null)
+                _lblControlSubtitle.ForeColor = TextSecondary;
+
+            ApplySelectionCardTheme(_lblModeValue?.Parent as ThemedSurfacePanel);
+            ApplySelectionCardTheme(_lblBoardValue?.Parent as ThemedSurfacePanel);
+            ApplySelectionCardTheme(_lblCourseValue?.Parent as ThemedSurfacePanel);
+            ApplyInfoBlockTheme(_lblStatus.Parent as ThemedSurfacePanel, _lblStatus);
+            ApplyInfoBlockTheme(_lblNumbersSummary.Parent as ThemedSurfacePanel, _lblNumbersSummary);
+            ApplyInfoBlockTheme(_lblHoverInfo.Parent as ThemedSurfacePanel, _lblHoverInfo);
+
+            ApplyKeyTheme(_btnKey0, 20);
+            ApplyKeyTheme(_btnKey1, 21);
+
+            Invalidate(true);
+        }
+
+        private void ApplyHostTheme(ThemedSurfacePanel? panel, Color surfaceColor, Color glowColor)
+        {
+            if (panel == null) return;
+            panel.SurfaceColor = surfaceColor;
+            panel.BorderColor = BorderSoft;
+            panel.GlowColor = glowColor;
+            panel.Invalidate();
+        }
+
+        private void ApplySelectionCardTheme(ThemedSurfacePanel? card)
+        {
+            if (card == null) return;
+            card.SurfaceColor = AppTheme.IsDark ? Color.FromArgb(31, 63, 77) : Color.White;
+            card.BorderColor = AppTheme.IsDark ? BorderSoft : Color.FromArgb(194, 221, 216);
+            card.GlowColor = AppTheme.IsDark ? Color.FromArgb(12, AccentCyan) : Color.FromArgb(8, 121, 189, 180);
+            foreach (var control in card.Controls.OfType<Label>())
+                control.ForeColor = control.Dock == DockStyle.Left ? TextSecondary : TextPrimary;
+            card.Invalidate();
+        }
+
+        private void ApplyInfoBlockTheme(ThemedSurfacePanel? block, Label contentLabel)
+        {
+            if (block == null) return;
+            block.SurfaceColor = AppTheme.IsDark ? Color.FromArgb(25, 53, 67) : Color.White;
+            block.BorderColor = AppTheme.IsDark ? BorderSoft : Color.FromArgb(194, 221, 216);
+            block.GlowColor = AppTheme.IsDark ? Color.FromArgb(10, AccentBlue) : Color.FromArgb(8, 121, 189, 180);
+            contentLabel.ForeColor = TextPrimary;
+            foreach (var control in block.Controls.OfType<Label>())
+            {
+                if (!ReferenceEquals(control, contentLabel))
+                    control.ForeColor = TextSecondary;
+            }
+            block.Invalidate();
+        }
+
+        private void ApplyKeyTheme(RoundButton? button, int channel)
+        {
+            if (button == null) return;
+            bool active = channel is 20 or 21
+                ? _keyPressedStates[channel - 20]
+                : DateTime.UtcNow < _channelActiveUntil[channel];
+            button.BackColor = active ? KeyActiveColor : KeyIdleColor;
+            button.BorderColor = active ? KeyActiveBorderColor : KeyIdleBorderColor;
+            button.ForeColor = AppTheme.IsDark ? Color.White : TextPrimary;
+            button.Invalidate();
+        }
+
+        private IEnumerable<ToolStripItem> GetToolStripItems()
+        {
+            if (_topToolStrip == null)
+                yield break;
+
+            foreach (ToolStripItem item in _topToolStrip.Items)
+                yield return item;
         }
 
         private void SelectMode(string mode)
@@ -2244,14 +2461,14 @@ namespace MyEmguProject
             MinimizeBox = false;
             ShowInTaskbar = false;
             ClientSize = new Size(430, 360);
-            BackColor = Color.FromArgb(36, 36, 46);
+            BackColor = AppTheme.DialogBackground;
             Font = new Font("Segoe UI", 9.5f);
 
             var lblTargets = new Label
             {
                 Text = "Элементы:",
                 AutoSize = true,
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = Color.FromArgb(32, 54, 74),
                 Location = new Point(18, 18)
             };
             Controls.Add(lblTargets);
@@ -2261,8 +2478,8 @@ namespace MyEmguProject
                 SelectionMode = SelectionMode.MultiExtended,
                 Location = new Point(18, 44),
                 Size = new Size(150, 230),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.DialogSurface,
+                ForeColor = AppTheme.DialogText,
                 BorderStyle = BorderStyle.FixedSingle
             };
             _lstTargets.SelectedIndexChanged += (_, _) => LoadValuesFromSelection();
@@ -2299,7 +2516,7 @@ namespace MyEmguProject
             {
                 Text = "Можно выбрать один или несколько элементов.\nПараметры применяются ко всем выбранным.",
                 Size = new Size(205, 54),
-                ForeColor = Color.Gainsboro,
+                ForeColor = AppTheme.DialogHint,
                 Location = new Point(editorLeft, 214)
             };
             Controls.Add(_lblHint);
@@ -2401,7 +2618,7 @@ namespace MyEmguProject
             {
                 Text = text,
                 AutoSize = true,
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = AppTheme.DialogText,
                 Location = new Point(x, y + 6)
             };
         }
@@ -2414,8 +2631,8 @@ namespace MyEmguProject
                 Size = new Size(120, 28),
                 Minimum = 0,
                 Maximum = 5000,
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.DialogSurface,
+                ForeColor = AppTheme.DialogText,
                 BorderStyle = BorderStyle.FixedSingle
             };
         }
@@ -2427,8 +2644,8 @@ namespace MyEmguProject
                 Text = text,
                 Size = new Size(94, 34),
                 Location = new Point(x, y),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogPrimaryButtonBackground,
+                ForeColor = AppTheme.DialogPrimaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             button.FlatAppearance.BorderSize = 0;
@@ -2452,14 +2669,76 @@ namespace MyEmguProject
         }
     }
 
+    internal class TransparentPanel : Panel
+    {
+        public TransparentPanel()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw |
+                ControlStyles.SupportsTransparentBackColor,
+                true);
+            BackColor = Color.Transparent;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            TransparentBackgroundRenderer.PaintTransparentHostBackground(this, e.Graphics);
+        }
+    }
+
+    internal sealed class TransparentFlowLayoutPanel : FlowLayoutPanel
+    {
+        public TransparentFlowLayoutPanel()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw |
+                ControlStyles.SupportsTransparentBackColor,
+                true);
+            BackColor = Color.Transparent;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            TransparentBackgroundRenderer.PaintTransparentHostBackground(this, e.Graphics);
+        }
+    }
+
+    internal static class TransparentBackgroundRenderer
+    {
+        public static void PaintTransparentHostBackground(Control control, Graphics graphics)
+        {
+            if (control.Parent is ThemedSurfacePanel themedParent)
+            {
+                using var brush = new SolidBrush(themedParent.SurfaceColor);
+                graphics.FillRectangle(brush, control.ClientRectangle);
+                return;
+            }
+
+            if (control.Parent != null)
+            {
+                using var brush = new SolidBrush(control.Parent.BackColor);
+                graphics.FillRectangle(brush, control.ClientRectangle);
+                return;
+            }
+
+            graphics.Clear(SystemColors.Control);
+        }
+    }
+
     internal sealed class ThemedSurfacePanel : Panel
     {
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-        public Color SurfaceColor { get; set; } = Color.FromArgb(24, 53, 67);
+        public Color SurfaceColor { get; set; } = Color.FromArgb(248, 252, 255);
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-        public Color BorderColor { get; set; } = Color.FromArgb(72, 117, 136);
+        public Color BorderColor { get; set; } = Color.FromArgb(194, 215, 229);
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-        public Color GlowColor { get; set; } = Color.FromArgb(18, 90, 215, 255);
+        public Color GlowColor { get; set; } = Color.FromArgb(12, 96, 203, 241);
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int CornerRadius { get; set; } = 22;
 
@@ -2477,15 +2756,7 @@ namespace MyEmguProject
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            if (Parent != null)
-            {
-                using var parentBrush = new SolidBrush(Parent.BackColor);
-                e.Graphics.FillRectangle(parentBrush, ClientRectangle);
-            }
-            else
-            {
-                base.OnPaintBackground(e);
-            }
+            TransparentBackgroundRenderer.PaintTransparentHostBackground(this, e.Graphics);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -2493,23 +2764,19 @@ namespace MyEmguProject
             base.OnPaint(e);
 
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            var bounds = new Rectangle(1, 1, Math.Max(1, Width - 3), Math.Max(1, Height - 3));
+            var shadowRect = new Rectangle(3, 5, Math.Max(1, Width - 9), Math.Max(1, Height - 10));
+            var bounds = new Rectangle(1, 1, Math.Max(1, Width - 6), Math.Max(1, Height - 7));
 
-            using (var glowPen = new Pen(GlowColor, 10f))
+            if (GlowColor.A > 0)
             {
-                e.Graphics.DrawRoundedRectangle(glowPen, new Rectangle(6, 8, Math.Max(1, Width - 13), Math.Max(1, Height - 17)), Math.Max(8, CornerRadius));
+                using var shadowBrush = new SolidBrush(GlowColor);
+                e.Graphics.FillRoundedRectangle(shadowBrush, shadowRect, Math.Max(8, CornerRadius));
             }
 
-            using (var fillBrush = new LinearGradientBrush(
-                bounds,
-                ControlPaint.Light(SurfaceColor, 0.05f),
-                ControlPaint.Dark(SurfaceColor, 0.08f),
-                90f))
-            {
-                e.Graphics.FillRoundedRectangle(fillBrush, bounds, CornerRadius);
-            }
+            using var fillBrush = new SolidBrush(SurfaceColor);
+            e.Graphics.FillRoundedRectangle(fillBrush, bounds, CornerRadius);
 
-            using (var borderPen = new Pen(BorderColor, 1.4f))
+            using (var borderPen = new Pen(BorderColor, 1.1f))
             {
                 e.Graphics.DrawRoundedRectangle(borderPen, bounds, CornerRadius);
             }
@@ -2518,9 +2785,9 @@ namespace MyEmguProject
 
     internal sealed class TopMenuRenderer : ToolStripProfessionalRenderer
     {
-        private static readonly Color HoverBackColor = Color.FromArgb(42, 96, 118);
-        private static readonly Color PressedBackColor = Color.FromArgb(57, 126, 154);
-        private static readonly Color MenuBackColor = Color.FromArgb(24, 53, 67);
+        private static Color HoverBackColor => AppTheme.MenuHover;
+        private static Color PressedBackColor => AppTheme.MenuPressed;
+        private static Color MenuBackColor => AppTheme.MenuBackground;
 
         public TopMenuRenderer() : base(new TopMenuColorTable())
         {
@@ -2528,7 +2795,11 @@ namespace MyEmguProject
 
         protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
         {
-            using var brush = new SolidBrush(MenuBackColor);
+            if (e.ToolStrip is not ToolStripDropDown && e.ToolStrip.BackColor == Color.Transparent)
+                return;
+
+            Color backgroundColor = e.ToolStrip is ToolStripDropDown ? MenuBackColor : e.ToolStrip.BackColor;
+            using var brush = new SolidBrush(backgroundColor);
             e.Graphics.FillRectangle(brush, e.AffectedBounds);
         }
 
@@ -2549,7 +2820,7 @@ namespace MyEmguProject
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            e.TextColor = Color.WhiteSmoke;
+            e.TextColor = AppTheme.Current.TextPrimary;
             base.OnRenderItemText(e);
         }
 
@@ -2577,26 +2848,26 @@ namespace MyEmguProject
 
     internal sealed class TopMenuColorTable : ProfessionalColorTable
     {
-        private static readonly Color MenuBackColor = Color.FromArgb(24, 53, 67);
+        private static Color MenuBackColor => AppTheme.MenuBackground;
 
         public override Color ToolStripDropDownBackground => MenuBackColor;
         public override Color ImageMarginGradientBegin => MenuBackColor;
         public override Color ImageMarginGradientMiddle => MenuBackColor;
         public override Color ImageMarginGradientEnd => MenuBackColor;
-        public override Color MenuBorder => Color.FromArgb(72, 117, 136);
-        public override Color MenuItemBorder => Color.FromArgb(72, 117, 136);
-        public override Color MenuItemSelected => Color.FromArgb(42, 96, 118);
-        public override Color MenuItemSelectedGradientBegin => Color.FromArgb(42, 96, 118);
-        public override Color MenuItemSelectedGradientEnd => Color.FromArgb(42, 96, 118);
-        public override Color MenuItemPressedGradientBegin => Color.FromArgb(57, 126, 154);
-        public override Color MenuItemPressedGradientMiddle => Color.FromArgb(57, 126, 154);
-        public override Color MenuItemPressedGradientEnd => Color.FromArgb(57, 126, 154);
-        public override Color ButtonSelectedHighlight => Color.FromArgb(42, 96, 118);
-        public override Color ButtonSelectedHighlightBorder => Color.FromArgb(72, 117, 136);
-        public override Color ButtonPressedHighlight => Color.FromArgb(57, 126, 154);
-        public override Color ButtonPressedHighlightBorder => Color.FromArgb(72, 117, 136);
-        public override Color SeparatorDark => Color.FromArgb(61, 92, 109);
-        public override Color SeparatorLight => Color.FromArgb(61, 92, 109);
+        public override Color MenuBorder => AppTheme.MenuBorder;
+        public override Color MenuItemBorder => AppTheme.MenuBorder;
+        public override Color MenuItemSelected => AppTheme.MenuHover;
+        public override Color MenuItemSelectedGradientBegin => AppTheme.MenuHover;
+        public override Color MenuItemSelectedGradientEnd => AppTheme.MenuHover;
+        public override Color MenuItemPressedGradientBegin => AppTheme.MenuPressed;
+        public override Color MenuItemPressedGradientMiddle => AppTheme.MenuPressed;
+        public override Color MenuItemPressedGradientEnd => AppTheme.MenuPressed;
+        public override Color ButtonSelectedHighlight => AppTheme.MenuHover;
+        public override Color ButtonSelectedHighlightBorder => AppTheme.MenuBorder;
+        public override Color ButtonPressedHighlight => AppTheme.MenuPressed;
+        public override Color ButtonPressedHighlightBorder => AppTheme.MenuBorder;
+        public override Color SeparatorDark => AppTheme.MenuSeparator;
+        public override Color SeparatorLight => AppTheme.MenuSeparator;
     }
 
     internal sealed class OverlayTransparencyDialog : Form
@@ -2614,14 +2885,14 @@ namespace MyEmguProject
             MinimizeBox = false;
             ShowInTaskbar = false;
             ClientSize = new Size(340, 145);
-            BackColor = Color.FromArgb(36, 36, 46);
+            BackColor = AppTheme.DialogBackground;
             Font = new Font("Segoe UI", 9.5f);
 
             var lblPrompt = new Label
             {
                 Text = "Прозрачность (0-255):",
                 AutoSize = true,
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = Color.FromArgb(32, 54, 74),
                 Location = new Point(18, 18)
             };
 
@@ -2633,8 +2904,8 @@ namespace MyEmguProject
                 Value = Math.Max(20, Math.Min(255, currentAlpha)),
                 Size = new Size(120, 28),
                 Location = new Point(18, 48),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.DialogSurface,
+                ForeColor = AppTheme.DialogText,
                 BorderStyle = BorderStyle.FixedSingle
             };
 
@@ -2642,7 +2913,7 @@ namespace MyEmguProject
             {
                 Text = "Меньше значение = больше прозрачности.",
                 AutoSize = true,
-                ForeColor = Color.Gainsboro,
+                ForeColor = AppTheme.DialogHint,
                 Location = new Point(18, 82)
             };
 
@@ -2652,8 +2923,8 @@ namespace MyEmguProject
                 DialogResult = DialogResult.OK,
                 Size = new Size(86, 32),
                 Location = new Point(144, 104),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogPrimaryButtonBackground,
+                ForeColor = AppTheme.DialogPrimaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             btnOk.FlatAppearance.BorderSize = 0;
@@ -2664,8 +2935,8 @@ namespace MyEmguProject
                 DialogResult = DialogResult.Cancel,
                 Size = new Size(86, 32),
                 Location = new Point(236, 104),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogSecondaryButtonBackground,
+                ForeColor = AppTheme.DialogSecondaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             btnCancel.FlatAppearance.BorderSize = 0;
@@ -2698,14 +2969,14 @@ namespace MyEmguProject
             MinimizeBox = false;
             ShowInTaskbar = false;
             ClientSize = new Size(320, 235);
-            BackColor = Color.FromArgb(36, 36, 46);
+            BackColor = AppTheme.DialogBackground;
             Font = new Font("Segoe UI", 9.5f);
 
             var lblPrompt = new Label
             {
                 Text = "Выберите контур:",
                 AutoSize = true,
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = Color.FromArgb(32, 54, 74),
                 Location = new Point(18, 16)
             };
 
@@ -2713,8 +2984,8 @@ namespace MyEmguProject
             {
                 Location = new Point(18, 42),
                 Size = new Size(284, 130),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.DialogSurface,
+                ForeColor = AppTheme.DialogText,
                 BorderStyle = BorderStyle.FixedSingle
             };
             _listBox.SelectedIndexChanged += (_, _) => _selectionChanged?.Invoke(_listBox.SelectedIndex);
@@ -2731,8 +3002,8 @@ namespace MyEmguProject
                 DialogResult = DialogResult.OK,
                 Size = new Size(86, 32),
                 Location = new Point(124, 188),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogPrimaryButtonBackground,
+                ForeColor = AppTheme.DialogPrimaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             btnOk.FlatAppearance.BorderSize = 0;
@@ -2743,8 +3014,8 @@ namespace MyEmguProject
                 DialogResult = DialogResult.Cancel,
                 Size = new Size(86, 32),
                 Location = new Point(216, 188),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogSecondaryButtonBackground,
+                ForeColor = AppTheme.DialogSecondaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             btnCancel.FlatAppearance.BorderSize = 0;
@@ -2775,14 +3046,14 @@ namespace MyEmguProject
             MinimizeBox = false;
             ShowInTaskbar = false;
             ClientSize = new Size(320, 145);
-            BackColor = Color.FromArgb(36, 36, 46);
+            BackColor = AppTheme.DialogBackground;
             Font = new Font("Segoe UI", 9.5f);
 
             var lblPrompt = new Label
             {
                 Text = "Длительность сигнала (мс):",
                 AutoSize = true,
-                ForeColor = Color.WhiteSmoke,
+                ForeColor = Color.FromArgb(32, 54, 74),
                 Location = new Point(18, 18)
             };
 
@@ -2794,8 +3065,8 @@ namespace MyEmguProject
                 Value = Math.Max(50, Math.Min(10000, currentDurationMs)),
                 Size = new Size(120, 28),
                 Location = new Point(18, 48),
-                BackColor = Color.FromArgb(50, 50, 60),
-                ForeColor = Color.WhiteSmoke,
+                BackColor = AppTheme.DialogSurface,
+                ForeColor = AppTheme.DialogText,
                 BorderStyle = BorderStyle.FixedSingle
             };
 
@@ -2803,7 +3074,7 @@ namespace MyEmguProject
             {
                 Text = "Можно задать от 50 до 10000 мс.",
                 AutoSize = true,
-                ForeColor = Color.Gainsboro,
+                ForeColor = AppTheme.DialogHint,
                 Location = new Point(18, 82)
             };
 
@@ -2813,8 +3084,8 @@ namespace MyEmguProject
                 DialogResult = DialogResult.OK,
                 Size = new Size(86, 32),
                 Location = new Point(124, 104),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogPrimaryButtonBackground,
+                ForeColor = AppTheme.DialogPrimaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             btnOk.FlatAppearance.BorderSize = 0;
@@ -2825,8 +3096,8 @@ namespace MyEmguProject
                 DialogResult = DialogResult.Cancel,
                 Size = new Size(86, 32),
                 Location = new Point(218, 104),
-                BackColor = Color.White,
-                ForeColor = Color.Black,
+                BackColor = AppTheme.DialogSecondaryButtonBackground,
+                ForeColor = AppTheme.DialogSecondaryButtonText,
                 FlatStyle = FlatStyle.Flat
             };
             btnCancel.FlatAppearance.BorderSize = 0;

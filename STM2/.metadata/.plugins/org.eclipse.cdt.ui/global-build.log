@@ -76,3 +76,31 @@ Finished building: default.size.stdout
  
 Finished building: STM32_USB_CDC_Control.list
  
+01:47:23 **** Build of configuration Debug for project STM32_USB_CDC_Control ****
+make -j8 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../USB_DEVICE/App -I../USB_DEVICE/Target -I../Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:19: warning: "APP_RX_DATA_SIZE" redefined
+   19 | #define APP_RX_DATA_SIZE  64U
+      | 
+In file included from ../Core/Src/main.c:13:
+../USB_DEVICE/App/usbd_cdc_if.h:51: note: this is the location of the previous definition
+   51 | #define APP_RX_DATA_SIZE  2048
+      | 
+arm-none-eabi-gcc -o "STM32_USB_CDC_Control.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\Ilyas\Desktop\stm\STM2\STM32_USB_CDC_Control\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32_USB_CDC_Control.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: STM32_USB_CDC_Control.elf
+ 
+arm-none-eabi-size   STM32_USB_CDC_Control.elf 
+arm-none-eabi-objdump -h -S  STM32_USB_CDC_Control.elf  > "STM32_USB_CDC_Control.list"
+   text	   data	    bss	    dec	    hex	filename
+  33004	    360	  10824	  44188	   ac9c	STM32_USB_CDC_Control.elf
+Finished building: default.size.stdout
+ 
+Finished building: STM32_USB_CDC_Control.list
+ 
+01:47:55 **** Incremental Build of configuration Debug for project STM32_USB_CDC_Control ****
+make -j8 all 
+arm-none-eabi-size   STM32_USB_CDC_Control.elf 
+   text	   data	    bss	    dec	    hex	filename
+  33004	    360	  10824	  44188	   ac9c	STM32_USB_CDC_Control.elf
+Finished building: default.size.stdout
+ 
