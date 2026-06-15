@@ -1,0 +1,98 @@
+[
+  {
+    "Id": "SW0",
+    "X": 716,
+    "Y": 415,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW1",
+    "X": 691,
+    "Y": 415,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW2",
+    "X": 663,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW3",
+    "X": 634,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW4",
+    "X": 608,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW5",
+    "X": 581,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW6",
+    "X": 554,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW7",
+    "X": 528,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW8",
+    "X": 501,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "SW9",
+    "X": 474,
+    "Y": 474,
+    "Width": 29,
+    "Height": 60,
+    "IsSwitch": true
+  },
+  {
+    "Id": "KEY0",
+    "X": 696,
+    "Y": 307,
+    "Width": 40,
+    "Height": 40,
+    "IsSwitch": false
+  },
+  {
+    "Id": "KEY1",
+    "X": 696,
+    "Y": 348,
+    "Width": 40,
+    "Height": 40,
+    "IsSwitch": false
+  }
+]

@@ -563,8 +563,10 @@ namespace MyEmguProject
 
         private void CreateOverlayControls()
         {
-            int baseY = 400;
-            int spacingX = 58;
+            int baseY = 474;
+            int spacingX = 29;
+            int swWidth = 29;
+            int swHeight = 60;
 
             _lblSwitchNumberView.AutoSize = false;
             _lblSwitchNumberView.Size = new Size(240, 28);
@@ -579,8 +581,8 @@ namespace MyEmguProject
                 int switchIndex = i;
                 _switches[i] = new DipSwitch
                 {
-                    Location = new Point(180 + i * spacingX, baseY),
-                    Size = new Size(54, 90)
+                    Location = new Point(474 + (SolenoidCount - 1 - i) * spacingX, baseY),
+                    Size = new Size(swWidth, swHeight)
                 };
                 _switches[i].StateChanged += (_, _) => OnSwitchStateChanged(switchIndex);
                 AttachSwKeyHoverHandlers(_switches[i], $"SW{i}");
@@ -590,7 +592,7 @@ namespace MyEmguProject
                 _switchLabels[i] = new Label
                 {
                     AutoSize = false,
-                    Size = new Size(54, 18),
+                    Size = new Size(swWidth, 18),
                     BackColor = AppTheme.SwitchLabelBackground,
                     ForeColor = TextPrimary,
                     Font = new Font("Consolas", 8f, FontStyle.Bold),
@@ -601,14 +603,15 @@ namespace MyEmguProject
                 _switchLabels[i].BringToFront();
             }
 
-            PositionSwitchNumberView();
             PositionSwitchLabels();
+            PositionSwitchNumberView();
             _lblSwitchNumberView.BringToFront();
 
             _btnKey0 = new RoundButton
             {
                 Text = "KEY0",
-                Location = new Point(790, baseY - 150),
+                Location = new Point(696, 307),
+                Size = new Size(40, 40),
                 BackColor = KeyIdleColor,
                 BorderColor = KeyIdleBorderColor
             };
@@ -634,7 +637,8 @@ namespace MyEmguProject
             _btnKey1 = new RoundButton
             {
                 Text = "KEY1",
-                Location = new Point(790, baseY - 30),
+                Location = new Point(696, 348),
+                Size = new Size(40, 40),
                 BackColor = KeyIdleColor,
                 BorderColor = KeyIdleBorderColor
             };
@@ -1566,7 +1570,7 @@ namespace MyEmguProject
             for (int i = 0; i < _switches.Length; i++)
             {
                 if (_switches[i] != null && _switches[i].IsOn)
-                    value |= 1 << (_switches.Length - 1 - i);
+                    value |= 1 << i;
             }
 
             return value;
@@ -1709,23 +1713,29 @@ namespace MyEmguProject
 
         internal List<SwKeyLayoutTarget> GetDefaultSwKeyLayoutTargets()
         {
-            const int baseY = 400;
-            const int spacingX = 58;
+            return BuildInitialSwKeyLayoutTargets();
+        }
+
+        private List<SwKeyLayoutTarget> BuildInitialSwKeyLayoutTargets()
+        {
+            const int baseY = 474;
+            const int startX = 474;
+            const int spacingX = 29;
             var targets = new List<SwKeyLayoutTarget>();
 
             for (int i = 0; i < SolenoidCount; i++)
             {
                 targets.Add(new SwKeyLayoutTarget(
                     $"SW{i}",
-                    180 + i * spacingX,
+                    startX + (SolenoidCount - 1 - i) * spacingX,
                     baseY,
-                    54,
-                    90,
+                    29,
+                    60,
                     true));
             }
 
-            targets.Add(new SwKeyLayoutTarget("KEY0", 790, baseY - 150, 100, 100, false));
-            targets.Add(new SwKeyLayoutTarget("KEY1", 790, baseY - 30, 100, 100, false));
+            targets.Add(new SwKeyLayoutTarget("KEY0", 696, 307, 40, 40, false));
+            targets.Add(new SwKeyLayoutTarget("KEY1", 696, 348, 40, 40, false));
             return targets;
         }
 
@@ -1759,11 +1769,54 @@ namespace MyEmguProject
                 if (targets == null || targets.Count == 0)
                     return;
 
-                ApplySwKeyLayoutTargets(targets);
+                ApplySwKeyLayoutTargets(NormalizeSavedSwitchOrder(targets));
             }
             catch
             {
             }
+        }
+
+        private List<SwKeyLayoutTarget> NormalizeSavedSwitchOrder(List<SwKeyLayoutTarget> targets)
+        {
+            var orderedSwitchTargets = targets
+                .Where(target => target.IsSwitch && target.Id.StartsWith("SW", StringComparison.OrdinalIgnoreCase))
+                .Select(target => new
+                {
+                    Target = target,
+                    Index = int.TryParse(target.Id.Substring(2), out int index) ? index : -1
+                })
+                .Where(item => item.Index >= 0)
+                .OrderBy(item => item.Target.X)
+                .ToList();
+
+            if (orderedSwitchTargets.Count != SolenoidCount)
+                return targets;
+
+            bool oldLeftToRightOrder = orderedSwitchTargets
+                .Select(item => item.Index)
+                .SequenceEqual(Enumerable.Range(0, SolenoidCount));
+
+            if (!oldLeftToRightOrder)
+                return targets;
+
+            var remappedSwitchTargets = new Dictionary<string, SwKeyLayoutTarget>(StringComparer.OrdinalIgnoreCase);
+            for (int slotIndex = 0; slotIndex < orderedSwitchTargets.Count; slotIndex++)
+            {
+                var slot = orderedSwitchTargets[slotIndex].Target;
+                string desiredId = $"SW{SolenoidCount - 1 - slotIndex}";
+                remappedSwitchTargets[desiredId] = slot with { Id = desiredId };
+            }
+
+            var normalizedTargets = new List<SwKeyLayoutTarget>(targets.Count);
+            foreach (var target in targets)
+            {
+                if (target.IsSwitch && remappedSwitchTargets.TryGetValue(target.Id, out var remappedTarget))
+                    normalizedTargets.Add(remappedTarget);
+                else
+                    normalizedTargets.Add(target);
+            }
+
+            return normalizedTargets;
         }
 
         private void ApplySwKeyLayoutTargets(IEnumerable<SwKeyLayoutTarget> targets)
@@ -1790,8 +1843,8 @@ namespace MyEmguProject
                 control.Size = new Size(clampedWidth, clampedHeight);
             }
 
-            PositionSwitchNumberView();
             PositionSwitchLabels();
+            PositionSwitchNumberView();
             _swKeyEditorWindow?.RefreshTargets();
         }
 
@@ -1833,8 +1886,8 @@ namespace MyEmguProject
                 control.Size = new Size(clampedWidth, clampedHeight);
             }
 
-            PositionSwitchNumberView();
             PositionSwitchLabels();
+            PositionSwitchNumberView();
             _swKeyEditorWindow?.RefreshTargets();
             SaveSwKeyLayout();
         }
@@ -1984,8 +2037,8 @@ namespace MyEmguProject
                 _draggedControl.Location = newLocation;
             }
 
-            PositionSwitchNumberView();
             PositionSwitchLabels();
+            PositionSwitchNumberView();
             _swKeyEditorWindow?.RefreshTargets();
         }
 
@@ -2067,8 +2120,10 @@ namespace MyEmguProject
             {
                 using var frame = _capture.QueryFrame();
                 if (frame is null || frame.IsEmpty) return;
+                using var rotatedFrame = new Mat();
+                CvInvoke.Rotate(frame, rotatedFrame, Emgu.CV.CvEnum.RotateFlags.Rotate180);
 
-                var bmp = frame.ToBitmap();
+                var bmp = rotatedFrame.ToBitmap();
 
                 if (_showOverlay || _showCustomContours)
                 {

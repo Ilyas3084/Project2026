@@ -66,3 +66,5 @@ C:\Users\Ilyas\Desktop\DE10_Lite_Lab\MyEmguProject\obj\Release\net10.0-windows\r
 C:\Users\Ilyas\Desktop\DE10_Lite_Lab\MyEmguProject\obj\Release\net10.0-windows\MyEmguProject.pdb
 C:\Users\Ilyas\Desktop\DE10_Lite_Lab\MyEmguProject\obj\Release\net10.0-windows\MyEmguProject.genruntimeconfig.cache
 C:\Users\Ilyas\Desktop\DE10_Lite_Lab\MyEmguProject\obj\Release\net10.0-windows\ref\MyEmguProject.dll
+C:\Users\Ilyas\Desktop\DE10_Lite_Lab\MyEmguProject\obj\Release\net10.0-windows\MyEmguProject.ReturnValuesWindow.resources
+C:\Users\Ilyas\Desktop\DE10_Lite_Lab\MyEmguProject\obj\Release\net10.0-windows\MyEmguProject.csproj.GenerateResource.cache

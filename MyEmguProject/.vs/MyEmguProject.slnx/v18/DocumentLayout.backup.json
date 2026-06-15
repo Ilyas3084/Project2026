@@ -3,20 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:BoardWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:ReturnValuesWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:MyEmguProject.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\RoundButton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RoundButton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\StartWindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -25,10 +29,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\DipSwitch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DipSwitch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\RoundButton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RoundButton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -43,6 +43,19 @@
             {
               "$type": "Document",
               "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAsAAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-16T17:36:34.314Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "StartWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\StartWindow.cs",
               "RelativeDocumentMoniker": "StartWindow.cs",
@@ -54,56 +67,45 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "DipSwitch.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\DipSwitch.cs",
               "RelativeDocumentMoniker": "DipSwitch.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\DipSwitch.cs",
               "RelativeToolTip": "DipSwitch.cs",
-              "ViewState": "AgIAAGYAAAAAAAAAAAAQwHIAAAAhAAAAAAAAAA==",
+              "ViewState": "AgIAAGYAAAAAAAAAAAAQwHIAAAAVAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-02-21T15:51:34.154Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 3,
               "Title": "RoundButton.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\RoundButton.cs",
               "RelativeDocumentMoniker": "RoundButton.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\RoundButton.cs",
               "RelativeToolTip": "RoundButton.cs",
-              "ViewState": "AgIAABsAAAAAAAAAAAAQwCMAAABVAAAAAAAAAA==",
+              "ViewState": "AgIAABsAAAAAAAAAAAAQwCMAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-21T15:51:03.871Z"
+              "WhenOpened": "2026-02-21T15:51:03.871Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 0,
               "Title": "ReturnValuesWindow.cs",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\ReturnValuesWindow.cs",
               "RelativeDocumentMoniker": "ReturnValuesWindow.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\ReturnValuesWindow.cs",
               "RelativeToolTip": "ReturnValuesWindow.cs",
-              "ViewState": "AgIAAMIAAAAAAAAAAAAUwM0AAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAAM4AAAAAAAAAAAAUwM0AAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-17T17:57:34.822Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAsAAABBAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-16T17:36:34.314Z",
+              "WhenOpened": "2026-02-17T17:57:34.822Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "MyEmguProject.csproj",
               "DocumentMoniker": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\MyEmguProject.csproj",
               "RelativeDocumentMoniker": "MyEmguProject.csproj",
@@ -111,7 +113,8 @@
               "RelativeToolTip": "MyEmguProject.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAABHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-02-16T17:28:31.391Z"
+              "WhenOpened": "2026-02-16T17:28:31.391Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -121,7 +124,7 @@
               "RelativeDocumentMoniker": "BoardWindow.cs",
               "ToolTip": "C:\\Users\\Ilyas\\Desktop\\DE10_Lite_Lab\\MyEmguProject\\BoardWindow.cs",
               "RelativeToolTip": "BoardWindow.cs",
-              "ViewState": "AgIAANULAAAAAAAAAAAAAPsGAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAsMAAAAAAAAAAAAADAHAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-02-16T08:29:06.257Z",
               "EditorCaption": ""
