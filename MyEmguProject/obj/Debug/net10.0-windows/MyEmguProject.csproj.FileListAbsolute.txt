@@ -268,3 +268,8 @@ C:\tmp\MyEmguProject-switch-order-fix\MyEmguProject.deps.json
 C:\tmp\MyEmguProject-switch-order-fix\MyEmguProject.runtimeconfig.json
 C:\tmp\MyEmguProject-switch-order-fix\MyEmguProject.dll
 C:\tmp\MyEmguProject-switch-order-fix\MyEmguProject.pdb
+C:\tmp\MyEmguProject-layout-import-export-rotate\MyEmguProject.exe
+C:\tmp\MyEmguProject-layout-import-export-rotate\MyEmguProject.deps.json
+C:\tmp\MyEmguProject-layout-import-export-rotate\MyEmguProject.runtimeconfig.json
+C:\tmp\MyEmguProject-layout-import-export-rotate\MyEmguProject.dll
+C:\tmp\MyEmguProject-layout-import-export-rotate\MyEmguProject.pdb

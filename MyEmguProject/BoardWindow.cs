@@ -45,6 +45,7 @@ namespace MyEmguProject
 
         private bool _showOverlay = true;
         private bool _showCustomContours = true;
+        private bool _rotateCamera180 = true;
         private bool _editMode = false;
         private Control? _draggedControl;
         private bool _resizing = false;
@@ -61,6 +62,7 @@ namespace MyEmguProject
         private ToolStripMenuItem? _menuToggleContours;
         private ToolStripMenuItem? _menuToggleSwitches;
         private ToolStripMenuItem? _menuToggleTheme;
+        private ToolStripMenuItem? _menuRotateCamera180;
         private ToolStripMenuItem? _menuSwitchesVisible;
         private ToolStripMenuItem? _menuSwitchesHidden;
         private ToolStripMenuItem? _menuSwitchesHoverReveal;
@@ -256,6 +258,8 @@ namespace MyEmguProject
             _menuToggleContours.Click += (s, e) => ToggleContoursVisibility();
             _menuToggleTheme = new ToolStripMenuItem("Тёмная тема") { Checked = AppTheme.IsDark };
             _menuToggleTheme.Click += (s, e) => ToggleTheme();
+            _menuRotateCamera180 = new ToolStripMenuItem("Поворот камеры 180°") { Checked = _rotateCamera180 };
+            _menuRotateCamera180.Click += (s, e) => ToggleCameraRotation();
             _menuToggleSwitches = new ToolStripMenuItem("SW/KEY");
             _menuSwitchesVisible = new ToolStripMenuItem("Видно");
             _menuSwitchesVisible.Click += (s, e) => SetSwKeyVisibilityMode(SwKeyVisibilityMode.Visible);
@@ -289,6 +293,7 @@ namespace MyEmguProject
             _btnHideMenu.DropDownItems.Add(_menuToggleOverlay);
             _btnHideMenu.DropDownItems.Add(_menuToggleContours);
             _btnHideMenu.DropDownItems.Add(_menuToggleTheme);
+            _btnHideMenu.DropDownItems.Add(_menuRotateCamera180);
             _btnHideMenu.DropDownItems.Add(_menuToggleSwitches);
             _btnHideMenu.DropDownItems.Add(new ToolStripSeparator());
             _btnHideMenu.DropDownItems.Add(_menuOverlayTransparency);
@@ -1338,6 +1343,8 @@ namespace MyEmguProject
                 _menuToggleContours.Checked = _showCustomContours;
             if (_menuToggleTheme != null)
                 _menuToggleTheme.Checked = AppTheme.IsDark;
+            if (_menuRotateCamera180 != null)
+                _menuRotateCamera180.Checked = _rotateCamera180;
 
             if (_menuSwitchesVisible != null)
                 _menuSwitchesVisible.Checked = _swKeyVisibilityMode == SwKeyVisibilityMode.Visible;
@@ -1358,6 +1365,15 @@ namespace MyEmguProject
             if (_logWindow != null && !_logWindow.IsDisposed)
                 _logWindow.ApplyTheme();
             UpdateStatusText(AppTheme.IsDark ? "Темная тема активна" : "Светлая тема активна");
+        }
+
+        private void ToggleCameraRotation()
+        {
+            _rotateCamera180 = !_rotateCamera180;
+            UpdateHideMenuTexts();
+            UpdateStatusText(_rotateCamera180
+                ? "Поворот камеры 180° включен"
+                : "Поворот камеры 180° выключен");
         }
 
         private void ApplyTheme()
@@ -1748,12 +1764,73 @@ namespace MyEmguProject
         {
             try
             {
-                var targets = GetSwKeyLayoutTargets();
-                var json = JsonSerializer.Serialize(targets, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(SwKeyLayoutFilePath, json);
+                File.WriteAllText(SwKeyLayoutFilePath, SerializeSwKeyLayout(GetSwKeyLayoutTargets()));
             }
             catch
             {
+            }
+        }
+
+        internal void ExportSwKeyLayoutToFile(IWin32Window? dialogOwner = null)
+        {
+            using var dialog = new SaveFileDialog
+            {
+                Title = "Сохранить раскладку SW/KEY",
+                Filter = "JSON файлы (*.json)|*.json|Все файлы (*.*)|*.*",
+                DefaultExt = "json",
+                AddExtension = true,
+                FileName = "swkey-layout.json"
+            };
+
+            if (dialog.ShowDialog(dialogOwner ?? this) != DialogResult.OK)
+                return;
+
+            try
+            {
+                File.WriteAllText(dialog.FileName, SerializeSwKeyLayout(GetSwKeyLayoutTargets()));
+                UpdateStatusText($"Раскладка SW/KEY сохранена: {Path.GetFileName(dialog.FileName)}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this,
+                    $"Не удалось сохранить файл раскладки.\n{ex.Message}",
+                    "Ошибка сохранения",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        internal void ImportSwKeyLayoutFromFile(IWin32Window? dialogOwner = null)
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Title = "Загрузить раскладку SW/KEY",
+                Filter = "JSON файлы (*.json)|*.json|Все файлы (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog(dialogOwner ?? this) != DialogResult.OK)
+                return;
+
+            try
+            {
+                string json = File.ReadAllText(dialog.FileName);
+                var targets = DeserializeSwKeyLayout(json);
+                if (targets == null || targets.Count == 0)
+                    throw new InvalidDataException("Файл не содержит раскладку SW/KEY.");
+
+                ApplySwKeyLayoutTargets(NormalizeSavedSwitchOrder(targets));
+                SaveSwKeyLayout();
+                UpdateStatusText($"Раскладка SW/KEY загружена: {Path.GetFileName(dialog.FileName)}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this,
+                    $"Не удалось загрузить файл раскладки.\n{ex.Message}",
+                    "Ошибка загрузки",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
 
@@ -1765,7 +1842,7 @@ namespace MyEmguProject
                     return;
 
                 string json = File.ReadAllText(SwKeyLayoutFilePath);
-                var targets = JsonSerializer.Deserialize<List<SwKeyLayoutTarget>>(json);
+                var targets = DeserializeSwKeyLayout(json);
                 if (targets == null || targets.Count == 0)
                     return;
 
@@ -1817,6 +1894,16 @@ namespace MyEmguProject
             }
 
             return normalizedTargets;
+        }
+
+        private static string SerializeSwKeyLayout(IEnumerable<SwKeyLayoutTarget> targets)
+        {
+            return JsonSerializer.Serialize(targets, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        private static List<SwKeyLayoutTarget>? DeserializeSwKeyLayout(string json)
+        {
+            return JsonSerializer.Deserialize<List<SwKeyLayoutTarget>>(json);
         }
 
         private void ApplySwKeyLayoutTargets(IEnumerable<SwKeyLayoutTarget> targets)
@@ -2120,10 +2207,18 @@ namespace MyEmguProject
             {
                 using var frame = _capture.QueryFrame();
                 if (frame is null || frame.IsEmpty) return;
-                using var rotatedFrame = new Mat();
-                CvInvoke.Rotate(frame, rotatedFrame, Emgu.CV.CvEnum.RotateFlags.Rotate180);
+                Bitmap bmp;
 
-                var bmp = rotatedFrame.ToBitmap();
+                if (_rotateCamera180)
+                {
+                    using var rotatedFrame = new Mat();
+                    CvInvoke.Rotate(frame, rotatedFrame, Emgu.CV.CvEnum.RotateFlags.Rotate180);
+                    bmp = rotatedFrame.ToBitmap();
+                }
+                else
+                {
+                    bmp = frame.ToBitmap();
+                }
 
                 if (_showOverlay || _showCustomContours)
                 {
@@ -2515,7 +2610,7 @@ namespace MyEmguProject
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
-            ClientSize = new Size(430, 360);
+            ClientSize = new Size(430, 408);
             BackColor = AppTheme.DialogBackground;
             Font = new Font("Segoe UI", 9.5f);
 
@@ -2576,17 +2671,29 @@ namespace MyEmguProject
             };
             Controls.Add(_lblHint);
 
-            var btnApply = CreateActionButton("Применить", 190, 294);
+            var btnApply = CreateActionButton("Применить", 190, 286);
             btnApply.Click += (_, _) => ApplyValues();
             Controls.Add(btnApply);
 
-            var btnDefault = CreateActionButton("Default", 302, 294);
+            var btnDefault = CreateActionButton("Default", 302, 286);
             btnDefault.Click += (_, _) =>
             {
                 _owner.ResetSwKeyLayoutToDefaults();
                 RefreshTargets();
             };
             Controls.Add(btnDefault);
+
+            var btnSave = CreateActionButton("Сохранить...", 190, 330);
+            btnSave.Click += (_, _) => _owner.ExportSwKeyLayoutToFile(this);
+            Controls.Add(btnSave);
+
+            var btnLoad = CreateActionButton("Загрузить...", 302, 330);
+            btnLoad.Click += (_, _) =>
+            {
+                _owner.ImportSwKeyLayoutFromFile(this);
+                RefreshTargets();
+            };
+            Controls.Add(btnLoad);
 
             RefreshTargets();
         }
@@ -2697,7 +2804,7 @@ namespace MyEmguProject
             var button = new Button
             {
                 Text = text,
-                Size = new Size(94, 34),
+                Size = new Size(104, 34),
                 Location = new Point(x, y),
                 BackColor = AppTheme.DialogPrimaryButtonBackground,
                 ForeColor = AppTheme.DialogPrimaryButtonText,
